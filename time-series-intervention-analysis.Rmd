@@ -1,0 +1,287 @@
+---
+title: "Structural Break and Time Series Modeling of Weekly Cereal Sales"
+author: "Alex Spigler"
+date: "April 4, 2025"
+output:
+  pdf_document:
+    toc: false
+    number_sections: false
+fontsize: 11pt
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  message    = FALSE,
+  warning    = FALSE,
+  fig.align  = "center",
+  fig.width  = 6.5,
+  fig.height = 4
+)
+
+library(astsa)     # time series tools: acf2(), sarima(), sarima.for()
+library(lmtest)    # Durbin–Watson test
+library(car)       # ncvTest()
+library(tseries)   # kpss.test()
+```
+
+# Introduction
+
+This report analyzes weekly cereal sales for a brand over a two-year period. At week 88, a competitor introduced a similar product into the market. The goal is to evaluate whether this competitive entry resulted in a structural change in sales patterns. Understanding structural breaks is important for businesses to identify the impact of interventions such as marketing campaigns, pricing changes, supply chain disruptions, or competitive actions.
+
+The goals of this analysis are to:
+
+1.  Model the underlying trend and a possible level/trend shift at the intervention week.
+2.  Diagnose violations of classical regression assumptions, especially autocorrelation.
+3.  Use an ARIMA error structure to account for serial correlation.
+4.  Produce short-term forecasts with prediction intervals.
+
+The analysis is carried out in **R** using a regression model with an intervention term and ARIMA errors.
+
+# Data and Exploratory Analysis
+
+```{r load-data}
+cereal <- read.csv("cereal-sales-data.csv")
+cereal_ts <- ts(cereal$sales, start = 1, frequency = 52)
+
+# Plot with week numbers on x-axis
+plot(
+  x = 1:length(cereal_ts),
+  y = as.numeric(cereal_ts),
+  type = "l",
+  main = "Weekly Cereal Sales",
+  xlab = "Week",
+  ylab = "Sales"
+)
+```
+
+Visually, the series shows a non-constant mean and an upward trend, indicating nonstationarity. There also appears to be a noticeable change around week 88, motivating an intervention model.
+
+# Methods
+
+## Regression with Intervention
+
+An intervention regression model is appropriate for detecting structural breaks. Let:
+
+-   $y_t$ = cereal sales in week $t$
+-   $x_t = 0$ for $t < 88$, $x_t = 1$ for $t \ge 88$
+-   $t$ = week index
+-   $x_t t$ = interaction term
+
+The model is:
+
+$$y_t = \beta_0 + \beta_1 x_t + \beta_2 t + \beta_3 x_t t + \varepsilon_t$$
+
+This specification is appropriate because:
+
+- $\beta_0$ captures the intercept (baseline level of sales) before week 88
+- $\beta_2 t$ captures the trend (rate of change in sales) before week 88
+- $\beta_1 x_t$ allows for a jump or drop in level at week 88
+- $\beta_3 x_t t$ allows for a change in trend after week 88 (sales could start declining faster or growing more slowly)
+
+```{r define-intervention}
+n <- nrow(cereal)
+cereal$t  <- seq_len(n)
+cereal$x  <- ifelse(cereal$t < 88, 0, 1)
+cereal$xt <- cereal$x * cereal$t
+
+reg_model <- lm(sales ~ x + t + xt, data = cereal)
+summary(reg_model)
+```
+
+**Interpretation of coefficients:**
+
+All coefficients are statistically significant (p < 0.001):
+
+-   $\hat{\beta}_0 = 102,585$: Baseline sales level before week 88
+-   $\hat{\beta}_2 = 1,153$: Pre-intervention trend (sales increased by approximately 1,153 units per week)
+-   $\hat{\beta}_1 = 278,483$: Immediate level shift at week 88 coinciding with competitor entry (a large jump in sales, possibly due to increased category awareness)
+-   $\hat{\beta}_3 = -3,257$: Change in slope after week 88 (sales declined by approximately 3,257 units per week after the intervention, resulting in a net negative trend post-intervention)
+
+# Regression Diagnostics
+
+```{r regression-diagnostics, fig.height=8}
+reg_resid <- resid(reg_model)
+par(mfrow = c(2, 1))
+
+plot(reg_resid, type="l", main="Residuals vs Time", xlab="Week", ylab="Residuals")
+abline(h=0, col="red", lty=2)
+
+plot(fitted(reg_model), reg_resid, main="Residuals vs Fitted", xlab="Fitted", ylab="Residuals")
+abline(h=0, col="red", lty=2)
+
+qqnorm(reg_resid, main="Normal Q–Q Plot")
+qqline(reg_resid, col="red")
+
+acf(reg_resid, main="ACF of Regression Residuals")
+
+par(mfrow = c(1, 1))
+```
+
+## Tests
+
+```{r assumption-tests}
+dwtest(reg_model)
+ncvTest(reg_model)
+shapiro.test(reg_resid)
+```
+
+**Independence:** While the residuals vs. time plot does not show an obvious visual pattern, formal testing reveals positive autocorrelation. The Durbin-Watson test (p-value = 0.001955) rejects the null hypothesis of no autocorrelation. This is further confirmed by the ACF plot, which shows a significant spike at lag 1.
+
+**Constant Variance:** The residuals vs. fitted values plot shows residuals randomly distributed around y = 0, suggesting constant variance. This is supported by the Non-Constant Variance Score Test (p-value = 0.2911), which does not reject the null hypothesis of constant variance.
+
+**Normality:** The Q-Q plot appears approximately normal, and the Shapiro-Wilk test (p-value = 0.5139) does not reject the null hypothesis of normality.
+
+**Conclusion:** The only assumption that fails is independence, due to the presence of positive autocorrelation among the error terms. This motivates the use of ARIMA errors.
+
+# Model Refinement with ARIMA Errors
+
+## Residual Analysis
+
+Because the diagnostic tests showed evidence of positive autocorrelation among the error terms, it is clear that the residuals are not white noise and require further modeling.
+
+```{r residual-analysis}
+kpss.test(reg_resid)
+acf2(reg_resid, max.lag = 40)
+```
+
+**Stationarity Check:** The KPSS test (p-value > 0.1) does not reject the null hypothesis of level stationarity, confirming the residuals have constant mean and variance. Therefore, differencing is not needed (d = 0 in ARIMA notation).
+
+**Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
+
+**Model Selection:** The ACF shows a significant spike at lag 1 that gradually tails off. The PACF similarly shows a significant spike at lag 1 that tails off. This pattern (both ACF and PACF showing initial spikes that decay) suggests an ARIMA(1,0,1) model is appropriate for the residuals.
+
+## ARIMA(1,0,1) Error Model
+
+$$e_t = \phi_1 e_{t-1} + \varepsilon_t + \theta_1 \varepsilon_{t-1}$$
+
+```{r arima-errors}
+sarima(reg_resid, 1, 0, 1)
+```
+
+**Model Diagnostics:**
+
+- The plot of standardized residuals looks good and is randomized around y = 0
+- The ACF of residuals is within bounds, indicating white noise
+- The Q-Q plot appears normal
+- The p-values for the Ljung-Box statistic are all above 0.05, indicating no remaining autocorrelation
+- Both AR(1) and MA(1) terms are statistically significant (p-values of 0.0002 and 0.0287 respectively)
+- AIC = 21.05425, BIC = 21.15595
+
+This is a well-fitting model. Residuals now appear to be white noise, validating the combined regression + ARIMA(1,0,1) approach.
+
+## Combined Model Specification
+
+The final model has a regression component with an intervention at Week 88, and ARIMA(1,0,1) errors to account for autocorrelation in the residuals:
+
+$$y_t = \beta_0 + \beta_1 x_t + \beta_2 t + \beta_3 x_t t + e_t$$
+
+where the error terms $e_t$ follow an ARIMA(1,0,1) process:
+
+$$e_t = \phi_1 e_{t-1} + \varepsilon_t + \theta_1 \varepsilon_{t-1}$$
+
+with:
+
+- $\varepsilon_t$ = white noise
+- $\phi_1 = 0.6728$ = autoregressive parameter
+- $\theta_1 = -0.4514$ = moving average parameter
+
+This model allows for a structural break in both the level and trend of sales at Week 88, and it captures autocorrelated, stationary errors.
+
+# Forecasting
+
+```{r forecast}
+xreg <- cbind(cereal$x, cereal$t, cereal$xt)
+
+h <- 10
+future_t  <- (n + 1):(n + h)
+future_x  <- ifelse(future_t < 88, 0, 1)
+future_xt <- future_x * future_t
+newxreg <- cbind(future_x, future_t, future_xt)
+
+fc <- sarima.for(
+  x       = cereal_ts,
+  n.ahead = h,
+  p       = 1,
+  d       = 0,
+  q       = 1,
+  xreg    = xreg,
+  newxreg = newxreg,
+  plot    = FALSE
+)
+
+forecast_df <- data.frame(
+  Week     = future_t,
+  Forecast = round(fc$pred, 2),
+  Lower95  = round(fc$pred - 1.96 * fc$se, 2),
+  Upper95  = round(fc$pred + 1.96 * fc$se, 2)
+)
+forecast_df
+```
+
+```{r plot-forecast}
+# Base plot: historical data
+plot(
+  x = 1:length(cereal_ts),
+  y = as.numeric(cereal_ts),
+  type = "l",
+  xlim = c(1, n + h),
+  ylim = range(
+    c(
+      as.numeric(cereal_ts),
+      fc$pred + 2 * fc$se,
+      fc$pred - 2 * fc$se
+    )
+  ),
+  main = "Cereal Sales: Historical Data and 10-Week Forecast",
+  xlab = "Week",
+  ylab = "Sales"
+)
+
+# Future x-values (weeks)
+future_index <- (n + 1):(n + h)
+
+# Forecast line
+lines(future_index, fc$pred, col = "blue", lwd = 2)
+
+# 95% prediction intervals
+lines(future_index, fc$pred + 1.96 * fc$se, col = "blue", lty = 2)
+lines(future_index, fc$pred - 1.96 * fc$se, col = "blue", lty = 2)
+
+legend(
+  "topleft",
+  legend = c("Observed", "Forecast", "95% PI"),
+  col    = c("black", "blue", "blue"),
+  lty    = c(1, 1, 2),
+  bty    = "n"
+)
+```
+
+# Conclusion
+
+This analysis successfully modeled weekly cereal sales with a structural break at week 88 using a combined regression and ARIMA approach.
+
+**Key Findings:**
+
+-   Regression analysis revealed a significant structural break at week 88, coinciding with the competitor's market entry. Results show an immediate jump in sales (likely due to increased category awareness) followed by a declining trend, consistent with competitive pressure.
+-   Standard regression residuals exhibited significant positive autocorrelation, violating the independence assumption.
+-   An ARIMA(1,0,1) error structure effectively captured the autocorrelation, with all diagnostic tests confirming the residuals now behave as white noise.
+-   The combined model fits the data well and produces stable 10-week forecasts with reasonable prediction intervals.
+
+**Practical Implications:**
+
+The confirmed impact of competitive entry on sales patterns demonstrates how regression with ARIMA errors can effectively handle structural breaks in time series data, making it valuable for:
+
+- Evaluating the impact of business interventions (e.g., marketing campaigns, pricing changes)
+- Detecting and quantifying shifts in consumer behavior
+- Producing reliable forecasts that account for both systematic changes and autocorrelation
+
+**Potential Extensions:**
+
+Future work could explore:
+
+- Analysis of competitor pricing, marketing spend, or product features to explain the magnitude of the sales impact
+- Testing alternative ARIMA specifications
+- Incorporating additional explanatory variables (e.g., seasonality, promotions, competitor actions)
+- Extending the forecast horizon and validating predictions against actual data
