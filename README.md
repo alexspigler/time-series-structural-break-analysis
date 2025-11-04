@@ -22,16 +22,6 @@ The analysis employs a two-stage approach:
 - ARIMA modeling with exogenous variables
 - Time series forecasting with prediction intervals
 
-## Repository Contents
-
-```
-├── time-series-intervention-analysis.Rmd              # Complete R Markdown analysis
-├── time-series-intervention-analysis.pdf              # Compiled report with results
-├── cereal-sales-data.csv                              # Weekly sales data (104 weeks)
-├── README.md                                          # This file
-└── LICENSE                                            # MIT License
-```
-
 **Note:** Data based on a simulated example used in coursework; values are synthetic.
 
 ## Key Results
