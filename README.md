@@ -2,6 +2,8 @@
 
 A time series analysis investigating the effect of competitive market entry on weekly cereal sales using intervention regression and ARIMA error modeling.
 
+**[View Full Report (PDF)](./time-series-intervention-analysis.pdf)**
+
 ## Project Overview
 
 This project analyzes two years of weekly cereal sales data to detect and quantify a structural break caused by a competitor's product launch. The analysis demonstrates how to properly model time series data when both trend changes and autocorrelation are present.
@@ -22,7 +24,7 @@ The analysis employs a two-stage approach:
 - ARIMA modeling with exogenous variables
 - Time series forecasting with prediction intervals
 
-**Note:** Data based on a simulated example used in coursework; values are synthetic.
+**Note:** Data values are synthetic.
 
 ## Key Results
 
@@ -32,7 +34,7 @@ The analysis employs a two-stage approach:
 - Residuals pass white noise tests after ARIMA correction
 - 10-week forecasts with 95% prediction intervals
 
-### Business Insights
+### Analytical Insights
 - Baseline trend: +1,153 units/week before competition
 - Immediate impact: +278,483 unit spike at market entry
 - Long-term effect: Net negative trend (-2,104 units/week) post-entry
