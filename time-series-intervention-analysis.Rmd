@@ -33,9 +33,8 @@ This report analyzes weekly cereal sales for a brand over a two-year period. At 
 The goals of this analysis are to:
 
 1.  Model the underlying trend and a possible level/trend shift at the intervention week.
-2.  Diagnose violations of classical regression assumptions, especially autocorrelation.
-3.  Use an ARIMA error structure to account for serial correlation.
-4.  Produce short-term forecasts with prediction intervals.
+2.  Diagnose any violations of classical regression assumptions, especially autocorrelation.
+3.  Produce short-term forecasts with prediction intervals.
 
 The analysis is carried out in **R** using a regression model with an intervention term and ARIMA errors.
 
@@ -264,24 +263,17 @@ This analysis successfully modeled weekly cereal sales with a structural break a
 
 **Key Findings:**
 
--   Regression analysis revealed a significant structural break at week 88, coinciding with the competitor's market entry. Results show an immediate jump in sales (likely due to increased category awareness) followed by a declining trend, consistent with competitive pressure.
+-   Regression analysis revealed a significant structural break at week 88, coinciding with the competitor's 
+market entry. Results show an immediate jump in sales (+278,483 units, likely due to increased category 
+awareness) followed by a declining trend (-3,257 units/week, consistent with competitive pressure).
 -   Standard regression residuals exhibited significant positive autocorrelation, violating the independence assumption.
 -   An ARIMA(1,0,1) error structure effectively captured the autocorrelation, with all diagnostic tests confirming the residuals now behave as white noise.
 -   The combined model fits the data well and produces stable 10-week forecasts with reasonable prediction intervals.
-
-**Practical Implications:**
-
-The confirmed impact of competitive entry on sales patterns demonstrates how regression with ARIMA errors can effectively handle structural breaks in time series data, making it valuable for:
-
-- Evaluating the impact of business interventions (e.g., marketing campaigns, pricing changes)
-- Detecting and quantifying shifts in consumer behavior
-- Producing reliable forecasts that account for both systematic changes and autocorrelation
 
 **Potential Extensions:**
 
 Future work could explore:
 
 - Analysis of competitor pricing, marketing spend, or product features to explain the magnitude of the sales impact
-- Testing alternative ARIMA specifications
-- Incorporating additional explanatory variables (e.g., seasonality, promotions, competitor actions)
+- Incorporating additional explanatory variables (such as promotions or other competitor actions)
 - Extending the forecast horizon and validating predictions against actual data

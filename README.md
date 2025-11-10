@@ -1,4 +1,4 @@
-# time-series-structural-break-analysis
+# Structural Break and Time Series Modeling of Weekly Cereal Sales
 
 A time series analysis investigating the effect of competitive market entry on weekly cereal sales using intervention regression and ARIMA error modeling.
 
