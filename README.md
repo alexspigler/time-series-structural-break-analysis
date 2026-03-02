@@ -87,3 +87,13 @@ The analysis includes:
 7. Conclusion - Key findings and practical implications
 
 ---
+
+## Author
+**Alex Spigler** — Statistics & Computer Science, George Washington University  
+[LinkedIn](https://www.linkedin.com/in/alexspigler/)
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
