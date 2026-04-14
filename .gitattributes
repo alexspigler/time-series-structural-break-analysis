@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Tell GitHub Linguist to count .Rmd files as R source code
+# (by default they're classified as "RMarkdown" / prose and excluded from stats)
+*.Rmd linguist-language=R linguist-detectable=true
