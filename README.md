@@ -6,9 +6,9 @@ A time series analysis investigating the effect of competitive market entry on w
 
 ## Project Overview
 
-This project analyzes two years of weekly cereal sales data to detect and quantify a structural break caused by a competitor's product launch. The analysis demonstrates how to properly model time series data when both trend changes and autocorrelation are present.
+This project analyzes two years of weekly cereal sales data to quantify the impact of a structural break at a known intervention point (a competitor's product launch in week 88). The analysis demonstrates how to properly model time series data when both trend changes and autocorrelation are present.
 
-**Key Finding:** The competitor's market entry at week 88 resulted in an immediate sales spike (+278,483 units) followed by a significant decline in growth rate (-3,257 units/week), suggesting initial category expansion followed by market share erosion.
+**Key Finding:** The competitor's market entry at week 88 reversed the sales trend, from +1,153 units/week (growth) to -2,104 units/week (decline), a change in slope of -3,257 units/week. There was no meaningful immediate jump in level, pointing to sustained competitive pressure and market-share erosion rather than a one-time shock.
 
 ## Methodology
 
@@ -18,7 +18,7 @@ The analysis employs a two-stage approach:
 2. ARIMA(1,0,1) Error Structure - Accounts for autocorrelation in residuals
 
 ### Statistical Techniques Used
-- Intervention analysis (structural break detection)
+- Intervention analysis (structural break at a known intervention point)
 - Regression diagnostics (Durbin-Watson, Shapiro-Wilk, Breusch-Pagan tests)
 - ACF/PACF analysis for model selection
 - ARIMA modeling with exogenous variables
@@ -29,16 +29,16 @@ The analysis employs a two-stage approach:
 ## Key Results
 
 ### Model Performance
-- R² = 0.90 - Excellent fit explaining 90% of sales variation
+- High in-sample R² (≈ 0.90), as expected on a trending series; valid inference relies on the ARIMA-error model, since the OLS errors are autocorrelated
 - All coefficients statistically significant (p < 0.001)
 - Residuals pass white noise tests after ARIMA correction
 - 10-week forecasts with 95% prediction intervals
 
 ### Analytical Insights
 - Baseline trend: +1,153 units/week before competition
-- Immediate impact: +278,483 unit spike at market entry
-- Long-term effect: Net negative trend (-2,104 units/week) post-entry
-- Suggests temporary category growth followed by sustained competitive pressure
+- Immediate impact: small level change at entry (≈ -8,100 units; the series is flat across the break)
+- Long-term effect: trend reverses to -2,104 units/week post-entry (a -3,257 units/week change in slope)
+- Suggests sustained competitive pressure / market-share erosion rather than a one-time shock
 
 ## Technologies & Packages
 

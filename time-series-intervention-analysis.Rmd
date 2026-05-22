@@ -61,7 +61,7 @@ Visually, the series shows a non-constant mean and an upward trend, indicating n
 
 ## Regression with Intervention
 
-An intervention regression model is appropriate for detecting structural breaks. Let:
+An intervention regression model is appropriate for modeling a structural break at a known intervention point. Let:
 
 -   $y_t$ = cereal sales in week $t$
 -   $x_t = 0$ for $t < 88$, $x_t = 1$ for $t \ge 88$
@@ -91,12 +91,17 @@ summary(reg_model)
 
 **Interpretation of coefficients:**
 
-All coefficients are statistically significant (p < 0.001):
+All four coefficients are statistically significant (p < 0.001). Because the model includes the trend-interaction term $x_t t$, the step and interaction coefficients are *not* interpretable on their own; the immediate jump and the post-intervention slope each combine two coefficients.
 
 -   $\hat{\beta}_0 = 102,585$: Baseline sales level before week 88
 -   $\hat{\beta}_2 = 1,153$: Pre-intervention trend (sales increased by approximately 1,153 units per week)
--   $\hat{\beta}_1 = 278,483$: Immediate level shift at week 88 coinciding with competitor entry (a large jump in sales, possibly due to increased category awareness)
--   $\hat{\beta}_3 = -3,257$: Change in slope after week 88 (sales declined by approximately 3,257 units per week after the intervention, resulting in a net negative trend post-intervention)
+-   $\hat{\beta}_1 = 278,483$: Coefficient on the step dummy $x_t$ (the gap between the two fitted lines extrapolated back to $t = 0$), **not** the jump at week 88
+-   $\hat{\beta}_3 = -3,257$: Coefficient on the interaction $x_t t$, i.e. the *change* in slope at week 88, **not** the post-intervention slope itself
+
+Combining the relevant terms gives the quantities of interest:
+
+-   **Immediate level shift at week 88** $= \hat{\beta}_1 + \hat{\beta}_3 \cdot 88 = 278,483 - 286,616 \approx -8,100$ units. The intervention produces little immediate jump; the raw series is essentially flat across the break (weeks 87 to 89: 202,370, 201,100, 203,210).
+-   **Post-intervention trend** $= \hat{\beta}_2 + \hat{\beta}_3 = 1,153 - 3,257 = -2,104$ units/week. Competitor entry reverses the trend from $+1,153$ units/week (growth) to $-2,104$ units/week (decline), a change in slope of $-3,257$ units/week.
 
 # Regression Diagnostics
 
@@ -263,9 +268,11 @@ This analysis successfully modeled weekly cereal sales with a structural break a
 
 **Key Findings:**
 
--   Regression analysis revealed a significant structural break at week 88, coinciding with the competitor's 
-market entry. Results show an immediate jump in sales (+278,483 units, likely due to increased category 
-awareness) followed by a declining trend (-3,257 units/week, consistent with competitive pressure).
+-   Regression analysis revealed a significant structural break at week 88, coinciding with the competitor's
+market entry. The effect is almost entirely a change in trend, not an immediate jump: the level shift at week
+88 is small (about -8,100 units, with the raw series flat across the break), while the weekly trend reverses
+from +1,153 units/week (growth) to -2,104 units/week (decline), a change in slope of -3,257 units/week
+consistent with sustained competitive pressure.
 -   Standard regression residuals exhibited significant positive autocorrelation, violating the independence assumption.
 -   An ARIMA(1,0,1) error structure effectively captured the autocorrelation, with all diagnostic tests confirming the residuals now behave as white noise.
 -   The combined model fits the data well and produces stable 10-week forecasts with reasonable prediction intervals.
