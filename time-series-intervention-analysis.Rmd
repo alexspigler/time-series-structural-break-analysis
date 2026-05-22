@@ -143,7 +143,7 @@ shapiro.test(reg_resid)
 
 ## Residual Analysis
 
-Because the diagnostic tests showed evidence of positive autocorrelation among the error terms, it is clear that the residuals are not white noise and require further modeling.
+Because the diagnostic tests showed positive autocorrelation among the error terms, the residuals are not white noise and require further modeling.
 
 ```{r residual-analysis}
 kpss.test(reg_resid)
@@ -166,7 +166,7 @@ sarima(reg_resid, 1, 0, 1)
 
 **Model Diagnostics:**
 
-- The plot of standardized residuals looks good and is randomized around y = 0
+- The standardized residuals show no structure and vary randomly around 0
 - The ACF of residuals is within bounds, indicating white noise
 - The Q-Q plot appears normal
 - The p-values for the Ljung-Box statistic are all above 0.05, indicating no remaining autocorrelation

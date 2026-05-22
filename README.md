@@ -6,20 +6,19 @@ A time series analysis investigating the effect of competitive market entry on w
 
 ## Project Overview
 
-This project analyzes two years of weekly cereal sales data to quantify the impact of a structural break at a known intervention point (a competitor's product launch in week 88). The analysis demonstrates how to properly model time series data when both trend changes and autocorrelation are present.
+This project analyzes two years of weekly cereal sales data to quantify the impact of a structural break at a known intervention point (a competitor's product launch in week 88). The analysis demonstrates how to model time series data when both trend changes and autocorrelation are present.
 
 **Key Finding:** The competitor's market entry at week 88 reversed the sales trend, from +1,153 units/week (growth) to -2,104 units/week (decline), a change in slope of -3,257 units/week. There was no meaningful immediate jump in level, pointing to sustained competitive pressure and market-share erosion rather than a one-time shock.
 
 ## Methodology
 
-The analysis employs a two-stage approach:
-
-1. Intervention Regression Model - Captures level and trend changes at the intervention point
-2. ARIMA(1,0,1) Error Structure - Accounts for autocorrelation in residuals
+1. **Intervention regression** captures the level and trend changes at the known break point (week 88).
+2. **Diagnostics** on that fit flag autocorrelated residuals as the only violated assumption, which makes ordinary regression inference unreliable.
+3. **ARIMA(1,0,1) errors** then model that autocorrelation; a Ljung-Box test confirms the residuals are white noise.
 
 ### Statistical Techniques Used
 - Intervention analysis (structural break at a known intervention point)
-- Regression diagnostics (Durbin-Watson, Shapiro-Wilk, Breusch-Pagan tests)
+- Regression diagnostics: Durbin-Watson (autocorrelation), ncvTest/Breusch-Pagan (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
 - ACF/PACF analysis for model selection
 - ARIMA modeling with exogenous variables
 - Time series forecasting with prediction intervals
@@ -38,7 +37,6 @@ The analysis employs a two-stage approach:
 - Baseline trend: +1,153 units/week before competition
 - Immediate impact: small level change at entry (≈ -8,100 units; the series is flat across the break)
 - Long-term effect: trend reverses to -2,104 units/week post-entry (a -3,257 units/week change in slope)
-- Suggests sustained competitive pressure / market-share erosion rather than a one-time shock
 
 ## Technologies & Packages
 
