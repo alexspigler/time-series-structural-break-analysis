@@ -234,8 +234,8 @@ plot(
   ylim = range(
     c(
       as.numeric(cereal_ts),
-      fc$pred + 2 * fc$se,
-      fc$pred - 2 * fc$se
+      fc$pred + 1.96 * fc$se,
+      fc$pred - 1.96 * fc$se
     )
   ),
   main = "Cereal Sales: Historical Data and 10-Week Forecast",
