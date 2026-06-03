@@ -133,7 +133,7 @@ shapiro.test(reg_resid)
 
 **Independence:** While the residuals vs. time plot does not show an obvious visual pattern, formal testing reveals positive autocorrelation. The Durbin-Watson test (p-value = 0.001955) rejects the null hypothesis of no autocorrelation. This is further confirmed by the ACF plot, which shows a significant spike at lag 1.
 
-**Constant Variance:** The residuals vs. fitted values plot shows residuals randomly distributed around y = 0, suggesting constant variance. This is supported by the Non-Constant Variance Score Test (p-value = 0.2911), which does not reject the null hypothesis of constant variance.
+**Constant Variance:** The residuals vs. fitted values plot shows residuals randomly distributed around y = 0, suggesting constant variance. This is supported by the Cook-Weisberg non-constant variance score test (p-value = 0.2911), which checks whether the residual variance scales with the fitted level — the natural heteroscedasticity concern for a trending series — and does not reject the null hypothesis of constant variance.
 
 **Normality:** The Q-Q plot appears approximately normal, and the Shapiro-Wilk test (p-value = 0.5139) does not reject the null hypothesis of normality.
 
@@ -154,7 +154,7 @@ acf2(reg_resid, max.lag = 40)
 
 **Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
 
-**Model Selection:** The ACF shows a significant spike at lag 1 that gradually tails off. The PACF similarly shows a significant spike at lag 1 that tails off. This pattern (both ACF and PACF showing initial spikes that decay) suggests an ARIMA(1,0,1) model is appropriate for the residuals.
+**Model Selection:** The ACF shows a significant spike at lag 1 that gradually tails off. The PACF similarly shows a significant spike at lag 1 that tails off. This pattern (both ACF and PACF showing initial spikes that decay) suggests an ARIMA(1,0,1) model is appropriate for the residuals. A simpler AR(1) model fits the residuals nearly as well, but both the AR and MA terms are statistically significant and the gradual tail-off in both the ACF and PACF supports the mixed ARMA(1,1) specification, so the MA(1) term is retained.
 
 ## ARIMA(1,0,1) Error Model
 
@@ -191,7 +191,21 @@ with:
 - $\phi_1 = 0.6728$ = autoregressive parameter
 - $\theta_1 = -0.4514$ = moving average parameter
 
-This model allows for a structural break in both the level and trend of sales at Week 88, and it captures autocorrelated, stationary errors.
+This model allows for a structural break in both the level and trend of sales at Week 88, and it captures autocorrelated, stationary errors. As a robustness check, re-estimating the regression coefficients jointly with the ARIMA(1,0,1) errors (generalized least squares rather than OLS) yields a very similar post-intervention slope, confirming the trend reversal is a genuine feature of the data and not an artifact of the OLS fit, whose standard errors the autocorrelation had invalidated.
+
+```{r gls-robustness}
+# GLS check: re-fit the regression jointly with the ARIMA(1,0,1) errors and
+# compare the post-intervention slope to the OLS estimate.
+gls_fit <- arima(
+  cereal_ts,
+  order = c(1, 0, 1),
+  xreg  = cbind(x = cereal$x, t = cereal$t, xt = cereal$xt)
+)
+ols_slope <- coef(reg_model)["t"] + coef(reg_model)["xt"]
+gls_slope <- coef(gls_fit)["t"]  + coef(gls_fit)["xt"]
+cat(sprintf("OLS post-intervention slope: %.1f units/week\n", ols_slope))
+cat(sprintf("GLS post-intervention slope: %.1f units/week\n", gls_slope))
+```
 
 # Forecasting
 

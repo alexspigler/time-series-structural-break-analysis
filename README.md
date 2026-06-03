@@ -8,7 +8,7 @@ A time series analysis investigating the effect of competitive market entry on w
 
 This project analyzes two years of weekly cereal sales data to quantify the impact of a structural break at a known intervention point (a competitor's product launch in week 88). The analysis demonstrates how to model time series data when both trend changes and autocorrelation are present.
 
-**Key Finding:** The competitor's market entry at week 88 reversed the sales trend, from +1,153 units/week (growth) to -2,104 units/week (decline), a change in slope of -3,257 units/week. There was no meaningful immediate jump in level, pointing to sustained competitive pressure and market-share erosion rather than a one-time shock.
+**Key finding:** The competitor's launch in week 88 caused almost no immediate drop in sales; the series is essentially flat across the break. What changed was the trajectory. Sales had been climbing at 1,153 units a week, and afterward they fell at 2,104 units a week. That slow reversal looks like steady market-share erosion rather than a one-time shock.
 
 ## Methodology
 
@@ -18,7 +18,7 @@ This project analyzes two years of weekly cereal sales data to quantify the impa
 
 ### Statistical Techniques Used
 - Intervention analysis (structural break at a known intervention point)
-- Regression diagnostics: Durbin-Watson (autocorrelation), ncvTest/Breusch-Pagan (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
+- Regression diagnostics: Durbin-Watson (autocorrelation), non-constant variance score test / Cook-Weisberg (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
 - ACF/PACF analysis for model selection
 - ARIMA modeling with exogenous variables
 - Time series forecasting with prediction intervals
@@ -88,7 +88,7 @@ The analysis includes:
 
 ## Author
 **Alex Spigler** — Statistics & Computer Science, George Washington University  
-[GitHub](https://github.com/alexspigler) · [LinkedIn](https://www.linkedin.com/in/alexspigler/)
+[GitHub](https://github.com/alexspigler) · [LinkedIn](https://linkedin.com/in/alexspigler)
 
 ---
 
