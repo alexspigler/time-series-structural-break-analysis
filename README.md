@@ -8,7 +8,7 @@ A time series analysis investigating the effect of competitive market entry on w
 
 This project analyzes two years of weekly cereal sales data to quantify the impact of a structural break at a known intervention point (a competitor's product launch in week 88). The analysis demonstrates how to model time series data when both trend changes and autocorrelation are present.
 
-**Key finding:** The competitor's launch in week 88 caused almost no immediate drop in sales; the series is essentially flat across the break. What changed was the trajectory. Sales had been climbing at 1,153 units a week, and afterward they fell at 2,104 units a week. That slow reversal looks like steady market-share erosion rather than a one-time shock.
+**Key finding:** The competitor's launch in week 88 produced almost no immediate change in the level of sales; the series is essentially flat across the break. The effect was on the trend instead: sales had been rising by 1,153 units per week, and afterward declined by 2,104 units per week. This gradual reversal is consistent with sustained market-share erosion rather than a one-time shock.
 
 ## Methodology
 

@@ -36,6 +36,9 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# Auto-generated graphics device file (figures live in the knit report)
+Rplots.pdf
+
 # R Environment Variables
 .Renviron
 

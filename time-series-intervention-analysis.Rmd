@@ -109,10 +109,12 @@ Combining the relevant terms gives the quantities of interest:
 reg_resid <- resid(reg_model)
 par(mfrow = c(2, 1))
 
-plot(reg_resid, type="l", main="Residuals vs Time", xlab="Week", ylab="Residuals")
+plot(reg_resid, type="l",
+     main="Residuals vs Time", xlab="Week", ylab="Residuals")
 abline(h=0, col="red", lty=2)
 
-plot(fitted(reg_model), reg_resid, main="Residuals vs Fitted", xlab="Fitted", ylab="Residuals")
+plot(fitted(reg_model), reg_resid,
+     main="Residuals vs Fitted", xlab="Fitted", ylab="Residuals")
 abline(h=0, col="red", lty=2)
 
 qqnorm(reg_resid, main="Normal Q–Q Plot")
@@ -133,7 +135,7 @@ shapiro.test(reg_resid)
 
 **Independence:** While the residuals vs. time plot does not show an obvious visual pattern, formal testing reveals positive autocorrelation. The Durbin-Watson test (p-value = 0.001955) rejects the null hypothesis of no autocorrelation. This is further confirmed by the ACF plot, which shows a significant spike at lag 1.
 
-**Constant Variance:** The residuals vs. fitted values plot shows residuals randomly distributed around y = 0, suggesting constant variance. This is supported by the Cook-Weisberg non-constant variance score test (p-value = 0.2911), which checks whether the residual variance scales with the fitted level — the natural heteroscedasticity concern for a trending series — and does not reject the null hypothesis of constant variance.
+**Constant Variance:** The residuals vs. fitted values plot shows residuals randomly distributed around y = 0, suggesting constant variance. This is supported by the Cook-Weisberg non-constant variance score test (p-value = 0.2911), which does not reject constant variance. The test examines whether residual variance increases with the fitted level, the form of heteroscedasticity most plausible for a trending sales series.
 
 **Normality:** The Q-Q plot appears approximately normal, and the Shapiro-Wilk test (p-value = 0.5139) does not reject the null hypothesis of normality.
 
@@ -154,7 +156,30 @@ acf2(reg_resid, max.lag = 40)
 
 **Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
 
-**Model Selection:** The ACF shows a significant spike at lag 1 that gradually tails off. The PACF similarly shows a significant spike at lag 1 that tails off. This pattern (both ACF and PACF showing initial spikes that decay) suggests an ARIMA(1,0,1) model is appropriate for the residuals. A simpler AR(1) model fits the residuals nearly as well, but both the AR and MA terms are statistically significant and the gradual tail-off in both the ACF and PACF supports the mixed ARMA(1,1) specification, so the MA(1) term is retained.
+**Model Selection:** Both the ACF and PACF show a significant spike at lag 1 and little structure beyond it, which points to a low-order model but does not sharply identify the orders. Comparing the candidate error models confirms this: AR(1), MA(1), and ARMA(1,1) all reduce the residuals to white noise (Ljung-Box p > 0.6) and fall within about 2 AIC of one another. ARIMA(1,0,1) has the lowest AIC and significant AR and MA terms, so it is used here; a more parsimonious AR(1), which BIC prefers, would serve equally well and leaves the structural-break estimates and forecasts unchanged.
+
+```{r model-comparison}
+# Compare candidate low-order error models on the regression residuals
+models <- list(
+  "AR(1)"     = c(1, 0, 0),
+  "MA(1)"     = c(0, 0, 1),
+  "ARMA(1,1)" = c(1, 0, 1)
+)
+comparison <- data.frame(
+  Model = names(models), AIC = NA, BIC = NA, LjungBox_p = NA
+)
+
+for (i in seq_along(models)) {
+  ord <- models[[i]]
+  fit <- arima(reg_resid, order = ord, include.mean = TRUE)
+  comparison$AIC[i]        <- round(fit$aic, 1)
+  comparison$BIC[i]        <- round(AIC(fit, k = log(length(reg_resid))), 1)
+  comparison$LjungBox_p[i] <- round(
+    Box.test(residuals(fit), lag = 10, type = "Ljung-Box",
+             fitdf = sum(ord[c(1, 3)]))$p.value, 3)
+}
+comparison
+```
 
 ## ARIMA(1,0,1) Error Model
 
@@ -191,7 +216,7 @@ with:
 - $\phi_1 = 0.6728$ = autoregressive parameter
 - $\theta_1 = -0.4514$ = moving average parameter
 
-This model allows for a structural break in both the level and trend of sales at Week 88, and it captures autocorrelated, stationary errors. As a robustness check, re-estimating the regression coefficients jointly with the ARIMA(1,0,1) errors (generalized least squares rather than OLS) yields a very similar post-intervention slope, confirming the trend reversal is a genuine feature of the data and not an artifact of the OLS fit, whose standard errors the autocorrelation had invalidated.
+This model captures both the structural break at Week 88 and the autocorrelation in the errors. As a robustness check, the regression is re-estimated jointly with the ARIMA(1,0,1) errors by GLS rather than OLS; the post-intervention slope remains strongly negative and of similar magnitude (shown below). The reversal is therefore a real feature of the data rather than an artifact of OLS. The OLS slope is itself unbiased; what the autocorrelation invalidates is its standard errors, not the coefficient.
 
 ```{r gls-robustness}
 # GLS check: re-fit the regression jointly with the ARIMA(1,0,1) errors and
