@@ -28,7 +28,7 @@ library(tseries)   # kpss.test()
 
 # Introduction
 
-This report analyzes weekly cereal sales for a brand over a two-year period. At week 88, a competitor introduced a similar product into the market. The goal is to evaluate whether this competitive entry resulted in a structural change in sales patterns. Understanding structural breaks is important for businesses to identify the impact of interventions such as marketing campaigns, pricing changes, supply chain disruptions, or competitive actions.
+This report analyzes weekly cereal sales for a brand over a two-year period. At week 88, a competitor introduced a similar product, and the goal is to test whether that entry shifted the level of sales, the trend, or both. The data is synthetic, generated to demonstrate the intervention-analysis workflow; the focus is the modeling and diagnostics rather than the specific series.
 
 The goals of this analysis are to:
 
@@ -156,7 +156,7 @@ acf2(reg_resid, max.lag = 40)
 
 **Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
 
-**Model Selection:** Both the ACF and PACF show a significant spike at lag 1 and little structure beyond it, which points to a low-order model but does not sharply identify the orders. Comparing the candidate error models confirms this: AR(1), MA(1), and ARMA(1,1) all reduce the residuals to white noise (Ljung-Box p > 0.6) and fall within about 2 AIC of one another. ARIMA(1,0,1) has the lowest AIC and significant AR and MA terms, so it is used here; a more parsimonious AR(1), which BIC prefers, would serve equally well and leaves the structural-break estimates and forecasts unchanged.
+**Model Selection:** Both the ACF and PACF show a significant spike at lag 1 and little structure beyond it, which points to a low-order model but does not sharply identify the orders. Comparing the candidate error models confirms this: AR(1), MA(1), and ARMA(1,1) all reduce the residuals to white noise (Ljung-Box p > 0.05 across the tested lags) and fall within about 2 AIC of one another. ARIMA(1,0,1) has the lowest AIC and significant AR and MA terms, so it is used here; a more parsimonious AR(1), which BIC prefers, would serve equally well and leaves the structural-break estimates and forecasts unchanged.
 
 ```{r model-comparison}
 # Compare candidate low-order error models on the regression residuals
