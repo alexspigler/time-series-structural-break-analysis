@@ -18,7 +18,7 @@ This project analyzes two years of weekly cereal sales data to quantify the impa
 
 ### Statistical Techniques Used
 - Intervention analysis (structural break at a known intervention point)
-- Regression diagnostics: Durbin-Watson (autocorrelation), non-constant variance score test / Cook-Weisberg (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
+- Regression diagnostics: Ramsey RESET (linearity), Durbin-Watson (autocorrelation), non-constant variance score test / Cook-Weisberg (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
 - ACF/PACF analysis for model selection
 - ARIMA modeling with exogenous variables
 - Time series forecasting with prediction intervals
@@ -40,7 +40,7 @@ This project analyzes two years of weekly cereal sales data to quantify the impa
 
 **Key Packages:**
 - `astsa` - Time series analysis and ARIMA modeling
-- `lmtest` - Diagnostic tests (Durbin-Watson)
+- `lmtest` - Diagnostic tests (Durbin-Watson, Ramsey RESET)
 - `car` - Regression diagnostics (ncvTest)
 - `tseries` - Stationarity tests (KPSS)
 
@@ -84,7 +84,7 @@ The analysis includes:
 
 ## Author
 **Alex Spigler** — Statistics & Computer Science, George Washington University  
-[GitHub](https://github.com/alexspigler) · [LinkedIn](https://linkedin.com/in/alexspigler)
+[LinkedIn](https://linkedin.com/in/alexspigler) · [alexspigler.dev](https://alexspigler.dev)
 
 ---
 
