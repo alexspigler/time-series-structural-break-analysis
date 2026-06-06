@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 )
 
 library(astsa)     # time series tools: acf2(), sarima(), sarima.for()
-library(lmtest)    # Durbin–Watson test
+library(lmtest)    # Durbin–Watson and RESET tests
 library(car)       # ncvTest()
 library(tseries)   # kpss.test()
 ```
@@ -128,10 +128,13 @@ par(mfrow = c(1, 1))
 ## Tests
 
 ```{r assumption-tests}
+resettest(reg_model)
 dwtest(reg_model)
 ncvTest(reg_model)
 shapiro.test(reg_resid)
 ```
+
+**Linearity:** The Ramsey RESET test (p-value = 0.5211) shows no evidence of omitted nonlinearity in the fitted trend, consistent with the residuals vs. fitted plot, which shows no systematic curvature.
 
 **Independence:** While the residuals vs. time plot does not show an obvious visual pattern, formal testing reveals positive autocorrelation. The Durbin-Watson test (p-value = 0.001955) rejects the null hypothesis of no autocorrelation. This is further confirmed by the ACF plot, which shows a significant spike at lag 1.
 
@@ -139,7 +142,7 @@ shapiro.test(reg_resid)
 
 **Normality:** The Q-Q plot appears approximately normal, and the Shapiro-Wilk test (p-value = 0.5139) does not reject the null hypothesis of normality.
 
-**Conclusion:** The only assumption that fails is independence, due to the presence of positive autocorrelation among the error terms. This motivates the use of ARIMA errors.
+**Conclusion:** Of the four classical regression assumptions, only independence fails: the errors show positive autocorrelation. This motivates the use of ARIMA errors.
 
 # Model Refinement with ARIMA Errors
 
