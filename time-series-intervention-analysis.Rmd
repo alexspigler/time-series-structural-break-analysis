@@ -36,7 +36,7 @@ The goals of this analysis are to:
 2.  Diagnose any violations of classical regression assumptions, especially autocorrelation.
 3.  Produce short-term forecasts with prediction intervals.
 
-The analysis is carried out in **R** using a regression model with an intervention term and ARIMA errors.
+The analysis is carried out in R using a regression model with an intervention term and ARIMA errors.
 
 # Data and Exploratory Analysis
 
@@ -91,12 +91,12 @@ summary(reg_model)
 
 **Interpretation of coefficients:**
 
-All four coefficients are statistically significant (p < 0.001). Because the model includes the trend-interaction term $x_t t$, the step and interaction coefficients are *not* interpretable on their own; the immediate jump and the post-intervention slope each combine two coefficients.
+All four coefficients are statistically significant (p < 0.001). Because the model includes the trend-interaction term $x_t t$, the step and interaction coefficients are not interpretable on their own; the immediate jump and the post-intervention slope each combine two coefficients.
 
 -   $\hat{\beta}_0 = 102,585$: Baseline sales level before week 88
 -   $\hat{\beta}_2 = 1,153$: Pre-intervention trend (sales increased by approximately 1,153 units per week)
--   $\hat{\beta}_1 = 278,483$: Coefficient on the step dummy $x_t$ (the gap between the two fitted lines extrapolated back to $t = 0$), **not** the jump at week 88
--   $\hat{\beta}_3 = -3,257$: Coefficient on the interaction $x_t t$, i.e. the *change* in slope at week 88, **not** the post-intervention slope itself
+-   $\hat{\beta}_1 = 278,483$: Coefficient on the step dummy $x_t$ (the gap between the two fitted lines extrapolated back to $t = 0$), not the jump at week 88
+-   $\hat{\beta}_3 = -3,257$: Coefficient on the interaction $x_t t$, i.e. the change in slope at week 88, not the post-intervention slope itself
 
 Combining the relevant terms gives the quantities of interest:
 
