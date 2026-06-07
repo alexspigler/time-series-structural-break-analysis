@@ -57,6 +57,8 @@ plot(
 
 Visually, the series shows a non-constant mean and an upward trend, indicating nonstationarity. There also appears to be a noticeable change around week 88, motivating an intervention model.
 
+This nonstationary trend could be deterministic (the series fluctuating around a fixed trend line, removed by including a time term in a regression) or stochastic (a unit root, where shocks accumulate permanently, removed by differencing). The two call for different models, so the distinction matters. Because the series also contains a structural break, the raw series cannot be tested directly: standard unit-root tests such as ADF and KPSS are unreliable when a break is present, since a break makes a deterministic trend look like a unit root. We therefore model the deterministic structure (trend plus intervention) with regression first, then check the residuals for any leftover stochastic trend that would require differencing.
+
 # Methods
 
 ## Regression with Intervention
@@ -151,11 +153,12 @@ shapiro.test(reg_resid)
 Because the diagnostic tests showed positive autocorrelation among the error terms, the residuals are not white noise and require further modeling.
 
 ```{r residual-analysis}
-kpss.test(reg_resid)
+# level setting: the regression already removed the trend
+kpss.test(reg_resid, null = "Level")
 acf2(reg_resid, max.lag = 40)
 ```
 
-**Stationarity Check:** The KPSS test (p-value > 0.1) does not reject the null hypothesis of level stationarity, confirming the residuals have constant mean and variance. Therefore, differencing is not needed (d = 0 in ARIMA notation).
+**Stationarity Check:** The level setting is the correct one here: the regression has already removed the deterministic trend, so the residuals have no trend left for a trend setting to test. The KPSS test (p-value > 0.1) does not reject the null of level stationarity, confirming the residuals have a constant mean with no remaining stochastic trend (unit root). Differencing is therefore not needed, and the leftover residual autocorrelation can be modeled directly with stationary ARMA errors.
 
 **Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
 
