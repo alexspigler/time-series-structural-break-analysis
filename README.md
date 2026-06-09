@@ -16,6 +16,8 @@ This project analyzes two years of weekly cereal sales data to quantify the impa
 2. **Diagnostics** on that fit flag autocorrelated residuals as the only violated assumption, which makes ordinary regression inference unreliable.
 3. **ARIMA(1,0,1) errors** then model that autocorrelation; a Ljung-Box test confirms the residuals are white noise.
 
+Because the break occurs at a known point, the trend and break are treated as deterministic and modeled by regression rather than removed by differencing; a KPSS test on the residuals confirms no stochastic trend remains before the ARMA errors are fit.
+
 ### Statistical Techniques Used
 - Intervention analysis (structural break at a known intervention point)
 - Regression diagnostics: Ramsey RESET (linearity), Durbin-Watson (autocorrelation), non-constant variance score test / Cook-Weisberg (heteroscedasticity), Shapiro-Wilk (normality), KPSS (stationarity)
