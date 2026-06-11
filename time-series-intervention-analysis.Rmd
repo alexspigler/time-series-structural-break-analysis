@@ -158,7 +158,7 @@ kpss.test(reg_resid, null = "Level")
 acf2(reg_resid, max.lag = 40)
 ```
 
-**Stationarity Check:** The level setting is the correct one here: the regression has already removed the deterministic trend, so the residuals have no trend left for a trend setting to test. The KPSS test (p-value > 0.1) does not reject the null of level stationarity, confirming the residuals have a constant mean with no remaining stochastic trend (unit root). Differencing is therefore not needed, and the leftover residual autocorrelation can be modeled directly with stationary ARMA errors.
+**Stationarity Check:** The level setting is the correct one here: the regression has already removed the deterministic trend, so the residuals have no trend left for a trend setting to test. The KPSS test (p-value > 0.1) does not reject the null of level stationarity, consistent with residuals that have a constant mean and no remaining stochastic trend (unit root). Differencing is therefore not needed, and the leftover residual autocorrelation can be modeled directly with stationary ARMA errors.
 
 **Seasonality Check:** The ACF shows no significant spikes at seasonal lags such as 52 or 104, indicating no seasonal autocorrelation. Seasonal differencing is not appropriate for this series.
 
