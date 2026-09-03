@@ -34,6 +34,18 @@ format_estimate <- function(x) {
   format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
 }
 
+format_math_estimate <- function(x) {
+  gsub(",", "{,}", format_estimate(x), fixed = TRUE)
+}
+
+format_math_term <- function(coefficient, symbol) {
+  paste(
+    if (coefficient < 0) "-" else "+",
+    format_math_estimate(abs(coefficient)),
+    symbol
+  )
+}
+
 format_p_value <- function(x) {
   ifelse(x < 0.001, "<0.001", sprintf("%.3f", x))
 }
@@ -233,13 +245,17 @@ ARMA(1,1) has the smallest AIC, but it improves on AR(1) by less than one AIC po
 For the selected specification,
 
 $$
-e_t = \phi e_{t-1} + \varepsilon_t,
+\begin{aligned}
+y_t &= \beta_0 + \beta_1 t + \beta_2 I_t + \beta_3 A_t + e_t, \\
+e_t &= \phi e_{t-1} + \varepsilon_t,
 \qquad \varepsilon_t \sim \mathrm{WN}(0, \sigma^2).
+\end{aligned}
 $$
 
 ```{r selected-model-results}
 selected_fit <- candidate_fits[["AR(1)"]]
 arma_fit <- candidate_fits[["ARMA(1,1)"]]
+selected_coefficients <- coef(selected_fit)
 
 selected_effects <- rbind(
   "Pre-entry weekly trend" = linear_combination(selected_fit, c(time = 1)),
@@ -292,6 +308,19 @@ arma_effects <- rbind(
 ar_root_modulus <- 1 / abs(coef(selected_fit)["ar1"])
 stopifnot(ar_root_modulus > 1)
 ```
+
+Substituting the rounded maximum-likelihood estimates gives
+
+$$
+\begin{aligned}
+y_t ={}& `r format_math_estimate(selected_coefficients["intercept"])`
+`r format_math_term(selected_coefficients["time"], "t")`
+`r format_math_term(selected_coefficients["post_entry"], "I_t")`
+`r format_math_term(selected_coefficients["weeks_after_entry"], "A_t")` + e_t, \\
+e_t ={}& `r sprintf("%.3f", selected_coefficients["ar1"])`e_{t-1} + \varepsilon_t,
+\qquad \varepsilon_t \sim \mathrm{WN}(0, \widehat{\sigma}^2).
+\end{aligned}
+$$
 
 The fitted pre-entry trend is approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week. The estimated post-entry trend is approximately `r format_estimate(selected_effects["Post-entry weekly trend", "Estimate"])` units per week, a change of `r format_estimate(selected_effects["Change in weekly trend", "Estimate"])` units per week. A likelihood-ratio comparison against an AR(1) trend-only model supports adding the level and slope changes (p `r format_p_value(break_lr_p)`). The fitted AR(1) error coefficient is `r sprintf("%.3f", coef(selected_fit)["ar1"])` (p = `r format_p_value(selected_p_values["ar1"])`).
 
