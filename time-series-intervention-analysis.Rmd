@@ -326,9 +326,49 @@ The fitted pre-entry trend is approximately `r format_estimate(selected_effects[
 
 The immediate level-shift interval includes zero (p = `r format_p_value(selected_effects["Immediate level shift at week 88", "p_value"])`), so the data do not show a statistically clear jump in week 88. The evidence is concentrated in the change in trend. The ARMA(1,1) sensitivity fit produces the same substantive conclusion: an estimated post-entry trend of `r format_estimate(arma_effects["Post-entry weekly trend", "Estimate"])` units per week and no statistically clear immediate shift (p = `r format_p_value(arma_effects["Immediate level shift at week 88", "p_value"])`).
 
-```{r selected-model-diagnostics, fig.height=4.6}
+The following checks are applied to the innovations from the selected AR(1) model rather than to the initial OLS residuals.
+
+```{r selected-model-tests}
 selected_residuals <- residuals(selected_fit)
-standardized_residuals <- selected_residuals / sqrt(selected_fit$sigma2)
+standardized_residuals <- as.numeric(selected_residuals / sqrt(selected_fit$sigma2))
+
+selected_ljung_box_result <- Box.test(
+  selected_residuals,
+  lag = 10,
+  type = "Ljung-Box",
+  fitdf = 1
+)
+selected_shapiro_result <- shapiro.test(standardized_residuals)
+
+arch_lags <- 5L
+arch_matrix <- embed(standardized_residuals^2, arch_lags + 1L)
+arch_response <- arch_matrix[, 1]
+arch_predictors <- arch_matrix[, -1, drop = FALSE]
+arch_fit <- lm(arch_response ~ arch_predictors)
+arch_statistic <- nrow(arch_matrix) * summary(arch_fit)$r.squared
+arch_p_value <- pchisq(arch_statistic, df = arch_lags, lower.tail = FALSE)
+
+selected_diagnostic_tests <- data.frame(
+  Diagnostic = c(
+    "Ljung-Box residual autocorrelation (lag 10)",
+    "Shapiro-Wilk normality",
+    "ARCH LM conditional heteroskedasticity (5 lags)"
+  ),
+  p_value = format_p_value(c(
+    selected_ljung_box_result$p.value,
+    selected_shapiro_result$p.value,
+    arch_p_value
+  ))
+)
+knitr::kable(
+  selected_diagnostic_tests,
+  col.names = c("Selected-model diagnostic", "p-value"),
+  align = c("l", "r"),
+  row.names = FALSE
+)
+```
+
+```{r selected-model-diagnostics, fig.height=4.6}
 diagnostic_lags <- 3:20
 ljung_box_p_values <- vapply(diagnostic_lags, function(model_lag) {
   Box.test(
@@ -353,7 +393,7 @@ abline(h = 0.05, col = "firebrick", lty = 2)
 par(old_par)
 ```
 
-The selected-model residual ACF has no prominent remaining structure, and the lag-10 Ljung-Box test does not reject residual independence (p = `r format_p_value(model_comparison$Ljung_Box_p[model_comparison$Model == "AR(1)"])`). These diagnostics are consistent with, but do not prove, a white-noise error sequence. The fitted AR root lies outside the unit circle, satisfying the stationarity condition.
+The lag-10 Ljung-Box test does not reject the null of no residual autocorrelation through lag 10 (p = `r format_p_value(selected_ljung_box_result$p.value)`). The Shapiro-Wilk test and Q-Q plot do not flag strong nonnormality (p = `r format_p_value(selected_shapiro_result$p.value)`), and the five-lag ARCH test does not flag conditional heteroskedasticity (p = `r format_p_value(arch_p_value)`). Together with the residual plots, these results support treating the fitted innovations as approximately white noise for this analysis; they do not prove independence, normality, or constant variance. The fitted AR root lies outside the unit circle, satisfying the stationarity condition.
 
 # Forecasting
 
@@ -500,7 +540,7 @@ Both regression models have lower one-step RMSE than the naive benchmark in this
 
 Jointly estimating the segmented regression and AR(1) errors yields a clear change in weekly trend after week 88. Sales rise by approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week before the stated entry date and decline by approximately `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week afterward. The immediate level-shift estimate is uncertain and does not distinguish a jump from zero.
 
-The ARMA(1,1) sensitivity fit produces a similar trend reversal, so the substantive finding is not tied to the selected low-order error structure. Residual diagnostics do not flag remaining short-lag autocorrelation, while the limited forecast check shows modest one-step predictive value and does not distinguish the two error models decisively. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
+The ARMA(1,1) sensitivity fit produces a similar trend reversal, so the substantive finding is not tied to the selected low-order error structure. Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity, while the limited forecast check shows modest one-step predictive value and does not distinguish the two error models decisively. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
 
 # Data Source
 

@@ -31,7 +31,7 @@ Under the joint AR(1) specification:
 
 A likelihood-ratio comparison with a trend-only AR(1) model supports including the level and slope changes (p < 0.001). The immediate level-shift interval includes zero, so the evidence is concentrated in the change in trend rather than a discrete jump at week 88. The ARMA(1,1) sensitivity fit gives the same substantive conclusion.
 
-Residual diagnostics do not flag remaining short-lag autocorrelation. In a limited rolling check for weeks 95 through 104, the AR(1) model's one-step RMSE is 13,098 units versus 15,107 for a naive forecast, with 9 of 10 observations inside the nominal 95% intervals. ARMA(1,1) has an RMSE of 13,013 with 8 of 10 observations inside its intervals, too little evidence to establish a meaningful predictive advantage.
+Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, the AR(1) model's one-step RMSE is 13,098 units versus 15,107 for a naive forecast, with 9 of 10 observations inside the nominal 95% intervals. ARMA(1,1) has an RMSE of 13,013 with 8 of 10 observations inside its intervals, too little evidence to establish a meaningful predictive advantage.
 
 ## Interpretation and Limitations
 
