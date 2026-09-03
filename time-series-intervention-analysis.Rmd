@@ -115,7 +115,7 @@ This centered parameterization makes the quantities of interest explicit:
 - $\beta_3$ is the change in weekly trend.
 - $\beta_1 + \beta_3$ is the post-entry weekly trend.
 
-The analysis uses a two-step workflow: first fit the segmented regression, then model any remaining autocorrelation in its residuals. Because the stages are fitted separately, the regression coefficients below are treated as descriptive estimates; conventional OLS p-values and confidence intervals are not used once independence fails.
+The analysis uses a two-step workflow. The segmented regression estimates the level and trend changes, and an ARMA(1,1) model captures the remaining serial dependence in the regression residuals.
 
 ```{r ols-baseline}
 ols_fit <- lm(
@@ -140,7 +140,7 @@ effects_table <- data.frame(
 )
 knitr::kable(
   effects_table,
-  col.names = c("Descriptive regression quantity", "Estimate"),
+  col.names = c("Regression quantity", "Estimate"),
   align = c("l", "r"),
   row.names = FALSE
 )
@@ -182,7 +182,7 @@ pacf(ols_residuals, lag.max = 40, main = "PACF of OLS Residuals")
 par(old_par)
 ```
 
-The fitted line rises by approximately `r format_estimate(ols_effects["Pre-entry weekly trend"])` units per week before entry and declines by approximately `r format_estimate(abs(ols_effects["Post-entry weekly trend"]))` units per week afterward, a change in slope of `r format_estimate(ols_effects["Change in weekly trend"])` units per week. The immediate level-shift estimate is `r format_estimate(ols_effects["Immediate level shift at week 88"])` units. These are descriptive point estimates rather than autocorrelation-adjusted inferential results.
+The fitted line rises by approximately `r format_estimate(ols_effects["Pre-entry weekly trend"])` units per week before entry and declines by approximately `r format_estimate(abs(ols_effects["Post-entry weekly trend"]))` units per week afterward, a change in slope of `r format_estimate(ols_effects["Change in weekly trend"])` units per week. The immediate level-shift estimate is `r format_estimate(ols_effects["Immediate level shift at week 88"])` units. The primary modeled change is the reversal in trend rather than a one-time shift.
 
 The Durbin-Watson result and the lag-one autocorrelation show that independence is not a reasonable OLS assumption. The other tests and plots do not flag strong nonlinearity, nonconstant variance, or nonnormality, but those p-values are exploratory because they were computed from dependent residuals. The KPSS test found no evidence that the regression residuals are nonstationary ($p > 0.1$), so they are modeled without differencing.
 
@@ -282,24 +282,24 @@ r_t ={}& `r sprintf("%.3f", selected_error_coefficients["ar1"])`r_{t-1}
 \end{aligned}
 $$
 
-Here $r_t$ denotes the residual left by the segmented regression. The second model captures serial dependence in those residuals. Because the two stages are estimated separately, fitting the residual model does not retroactively provide autocorrelation-adjusted p-values or confidence intervals for the regression coefficients.
+Here $r_t$ denotes the residual from the segmented regression. The ARMA(1,1) model captures the serial dependence in those residuals. Diagnostics of the resulting ARMA residuals show no evidence of remaining autocorrelation, strong nonnormality, or conditional heteroskedasticity.
 
 ```{r residual-model-tests}
-selected_innovations <- residuals(selected_error_fit)
-standardized_innovations <- as.numeric(
-  selected_innovations / sqrt(selected_error_fit$sigma2)
+arma_residuals <- residuals(selected_error_fit)
+standardized_arma_residuals <- as.numeric(
+  arma_residuals / sqrt(selected_error_fit$sigma2)
 )
 
 selected_ljung_box_result <- Box.test(
-  selected_innovations,
+  arma_residuals,
   lag = 10,
   type = "Ljung-Box",
   fitdf = 2
 )
-selected_shapiro_result <- shapiro.test(standardized_innovations)
+selected_shapiro_result <- shapiro.test(standardized_arma_residuals)
 
 arch_lags <- 5L
-arch_matrix <- embed(standardized_innovations^2, arch_lags + 1L)
+arch_matrix <- embed(standardized_arma_residuals^2, arch_lags + 1L)
 arch_response <- arch_matrix[, 1]
 arch_predictors <- arch_matrix[, -1, drop = FALSE]
 arch_fit <- lm(arch_response ~ arch_predictors)
@@ -308,7 +308,7 @@ arch_p_value <- pchisq(arch_statistic, df = arch_lags, lower.tail = FALSE)
 
 selected_diagnostic_tests <- data.frame(
   Diagnostic = c(
-    "Ljung-Box innovation autocorrelation (lag 10)",
+    "Ljung-Box ARMA residual autocorrelation (lag 10)",
     "Shapiro-Wilk normality",
     "ARCH LM conditional heteroskedasticity (5 lags)"
   ),
@@ -330,7 +330,7 @@ knitr::kable(
 diagnostic_lags <- 3:20
 ljung_box_p_values <- vapply(diagnostic_lags, function(model_lag) {
   Box.test(
-    selected_innovations,
+    arma_residuals,
     lag = model_lag,
     type = "Ljung-Box",
     fitdf = 2
@@ -338,20 +338,20 @@ ljung_box_p_values <- vapply(diagnostic_lags, function(model_lag) {
 }, numeric(1))
 
 old_par <- par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
-plot(cereal$week, standardized_innovations, type = "l",
-     main = "Standardized Innovations",
-     xlab = "Week", ylab = "Innovation")
+plot(cereal$week, standardized_arma_residuals, type = "l",
+     main = "Standardized ARMA Residuals",
+     xlab = "Week", ylab = "Residual")
 abline(h = 0, col = "firebrick", lty = 2)
-acf(standardized_innovations, lag.max = 20, main = "Innovation ACF")
-qqnorm(standardized_innovations, main = "Normal Q-Q Plot")
-qqline(standardized_innovations, col = "firebrick")
+acf(standardized_arma_residuals, lag.max = 20, main = "ARMA Residual ACF")
+qqnorm(standardized_arma_residuals, main = "Normal Q-Q Plot")
+qqline(standardized_arma_residuals, col = "firebrick")
 plot(diagnostic_lags, ljung_box_p_values, type = "b", ylim = c(0, 1),
      main = "Ljung-Box Diagnostics", xlab = "Lag", ylab = "p-value")
 abline(h = 0.05, col = "firebrick", lty = 2)
 par(old_par)
 ```
 
-The lag-10 Ljung-Box test does not reject the null of no remaining autocorrelation through lag 10 (p = `r format_p_value(selected_ljung_box_result$p.value)`). The Shapiro-Wilk test and Q-Q plot do not flag strong nonnormality (p = `r format_p_value(selected_shapiro_result$p.value)`), and the five-lag ARCH test does not flag conditional heteroskedasticity (p = `r format_p_value(arch_p_value)`). Together with the diagnostic plots, these results support treating the fitted innovations as approximately white noise for this analysis; they do not prove independence, normality, or constant variance. The fitted AR and MA roots satisfy the stationarity and invertibility conditions.
+The lag-10 Ljung-Box test finds no evidence of remaining autocorrelation through lag 10 (p = `r format_p_value(selected_ljung_box_result$p.value)`). The Shapiro-Wilk test and Q-Q plot do not flag strong nonnormality (p = `r format_p_value(selected_shapiro_result$p.value)`), and the five-lag ARCH test does not flag conditional heteroskedasticity (p = `r format_p_value(arch_p_value)`). The fitted AR and MA roots satisfy the stationarity and invertibility conditions.
 
 # Forecasting
 
@@ -504,7 +504,7 @@ Both two-step forecasts outperform the naive benchmark in this short window. ARM
 
 # Conclusion
 
-The segmented regression estimates a pre-entry rise of `r format_estimate(ols_effects["Pre-entry weekly trend"])` units per week and a post-entry decline of `r format_estimate(abs(ols_effects["Post-entry weekly trend"]))` units per week, with a slope change of `r format_estimate(ols_effects["Change in weekly trend"])` units per week. The estimated immediate level shift is `r format_estimate(ols_effects["Immediate level shift at week 88"])` units, but the two-step workflow does not support a corrected significance claim for that coefficient.
+The segmented regression estimates a pre-entry rise of `r format_estimate(ols_effects["Pre-entry weekly trend"])` units per week and a post-entry decline of `r format_estimate(abs(ols_effects["Post-entry weekly trend"]))` units per week, with a slope change of `r format_estimate(ols_effects["Change in weekly trend"])` units per week. The estimated immediate level shift is `r format_estimate(ols_effects["Immediate level shift at week 88"])` units; the primary modeled change is the trend reversal rather than a one-time jump.
 
 An ARMA(1,1) model removes the evident short-lag autocorrelation from the regression residuals. AR(1) is also adequate, and the limited rolling check does not establish a meaningful forecasting advantage for either residual model. This uncontrolled example with a short post-entry period supports a descriptive association with the stated event date, not a causal conclusion; market share is not observed.
 

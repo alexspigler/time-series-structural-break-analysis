@@ -15,10 +15,10 @@ The data come from the weekly cereal-sales intervention example in Montgomery, J
 1. Validate the dataset and encode a centered intervention at week 88.
 2. Estimate the level and trend changes with a segmented ordinary least-squares regression.
 3. Diagnose serial correlation and compare AR(1), MA(1), and ARMA(1,1) models for the regression residuals.
-4. Check whether the fitted ARMA innovations behave approximately as white noise.
+4. Check whether the fitted ARMA residuals behave approximately as white noise.
 5. Combine the regression projection with the residual forecast and evaluate the two-stage workflow over ten rolling one-step forecasts.
 
-The centered regression directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. Because its residuals are autocorrelated, the regression coefficients are presented as descriptive estimates rather than accompanied by conventional OLS significance claims. ARMA(1,1) is retained for the residual stage because it has the lowest AIC and both terms contribute, although BIC favors the simpler AR(1).
+The centered regression directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. ARMA(1,1) then models the serial dependence in the regression residuals. It is retained for the residual stage because it has the lowest AIC and both terms contribute, although BIC favors the simpler AR(1).
 
 ## Results
 
@@ -29,9 +29,9 @@ The segmented regression estimates:
 - Change in trend: approximately **-3,257 units per week**.
 - Post-entry trend: approximately **-2,104 units per week**.
 
-These are descriptive point estimates. The separate residual model does not provide autocorrelation-adjusted confidence intervals or p-values for the regression coefficients.
+The primary modeled change is a reversal in trend rather than a one-time level shift.
 
-The ARMA(1,1) residual model has fitted AR and MA coefficients of approximately 0.673 and -0.451. Its innovations show no evident remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, two-step ARMA(1,1) has an RMSE of 12,903 units versus 13,004 for two-step AR(1) and 15,107 for a naive forecast. The small difference between the residual models does not establish a meaningful predictive advantage.
+The ARMA(1,1) residual model has fitted AR and MA coefficients of approximately 0.673 and -0.451. Its residuals show no evident remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, two-step ARMA(1,1) has an RMSE of 12,903 units versus 13,004 for two-step AR(1) and 15,107 for a naive forecast. The small difference between the residual models does not establish a meaningful predictive advantage.
 
 ## Interpretation and Limitations
 
