@@ -184,7 +184,7 @@ par(old_par)
 
 The fitted line rises by approximately `r format_estimate(ols_effects["Pre-entry weekly trend"])` units per week before entry and declines by approximately `r format_estimate(abs(ols_effects["Post-entry weekly trend"]))` units per week afterward, a change in slope of `r format_estimate(ols_effects["Change in weekly trend"])` units per week. The immediate level-shift estimate is `r format_estimate(ols_effects["Immediate level shift at week 88"])` units. These are descriptive point estimates rather than autocorrelation-adjusted inferential results.
 
-The Durbin-Watson result and the lag-one autocorrelation show that independence is not a reasonable OLS assumption. The other tests and plots do not flag strong nonlinearity, nonconstant variance, or nonnormality, but those p-values are exploratory because they were computed from dependent residuals. The KPSS test does not reject level stationarity ($p > 0.1$), which supports using a stationary residual process without differencing; it does not prove stationarity.
+The Durbin-Watson result and the lag-one autocorrelation show that independence is not a reasonable OLS assumption. The other tests and plots do not flag strong nonlinearity, nonconstant variance, or nonnormality, but those p-values are exploratory because they were computed from dependent residuals. The KPSS test found no evidence that the regression residuals are nonstationary ($p > 0.1$), so they are modeled without differencing.
 
 Only two annual cycles are observed. The displayed ACF and PACF cover lags through 40, so annual seasonality at lag 52 cannot be assessed reliably from this sample. No seasonal terms are included.
 
