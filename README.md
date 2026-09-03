@@ -8,8 +8,6 @@ An intervention analysis of a weekly cereal-sales example using segmented regres
 
 The dataset contains 104 weekly sales observations. In its accompanying scenario, a competing product enters the market in week 88. The analysis estimates whether the sales level or weekly trend changed at that point while accounting for serial correlation.
 
-Originally developed as coursework.
-
 The data come from the weekly cereal-sales intervention example in Montgomery, Jennings, and Kulahci's *Introduction to Time Series Analysis and Forecasting*, Second Edition. Wiley provides the textbook's data through its [student companion site](https://bcs.wiley.com/he-bcs/Books?action=index&bcsId=10036&itemId=1118745116). The source does not identify the brands or establish whether the values are observed or simulated. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the data notice.
 
 ## Approach
@@ -37,7 +35,7 @@ Residual diagnostics do not flag remaining short-lag autocorrelation. In a limit
 
 ## Interpretation and Limitations
 
-This is an uncontrolled interrupted time series built from a published textbook example. It supports an estimated change associated with the stated week-88 event date, but it does not establish that competitor entry caused the decline or that market share changed.
+This is an uncontrolled interrupted time series built from a published textbook example. It estimates a change in the brand's weekly sales associated with the stated week-88 event date, but it cannot establish that competitor entry caused the change; market share is not observed.
 
 Only 17 post-entry observations and two annual cycles are available. Annual seasonality cannot be assessed reliably, and the ten-week forecasts should be read as conditional model projections rather than validated long-range forecasts.
 

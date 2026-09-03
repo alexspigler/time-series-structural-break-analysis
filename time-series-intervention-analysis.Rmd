@@ -67,7 +67,7 @@ linear_combination <- function(fit, terms) {
 
 This report examines a published example containing 104 weeks of cereal sales. In the scenario accompanying the data, a competing product enters the market in week 88. The analysis asks whether the sales level or weekly trend changed at that point while accounting for serial correlation.
 
-The dataset comes from the weekly cereal-sales intervention example in Montgomery, Jennings, and Kulahci's *Introduction to Time Series Analysis and Forecasting*, Second Edition, and is available through Wiley's companion materials. The source does not identify the brands or establish whether the values are observed or simulated. This project was originally developed as coursework.
+The dataset comes from the weekly cereal-sales intervention example in Montgomery, Jennings, and Kulahci's *Introduction to Time Series Analysis and Forecasting*, Second Edition, and is available through Wiley's companion materials. The source does not identify the brands or establish whether the values are observed or simulated.
 
 The analysis has three goals:
 
@@ -113,7 +113,7 @@ text(break_week - 2, min(cereal$sales), "Competitor entry", srt = 90,
 
 Sales rise through most of the series and then decline after week 88. A segmented trend is therefore a natural description of the visible change. The event timing is supplied with the example, so the analysis treats week 88 as known rather than searching the series for a break point.
 
-The design is an interrupted time series without a control series or additional covariates. It can estimate a change associated with the stated event date, but it cannot by itself establish that competitor entry caused the change.
+The design is an interrupted time series without a control series or additional covariates. It estimates a change in the brand's weekly sales associated with the stated event date, but it cannot establish that competitor entry caused the change; market share is not observed.
 
 # Segmented Regression
 
@@ -448,7 +448,7 @@ The model's one-step RMSE is lower than the naive benchmark in this short window
 
 Jointly estimating the segmented regression and ARMA(1,1) errors yields a clear change in weekly trend after week 88. Sales rise by approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week before the stated entry date and decline by approximately `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week afterward. The immediate level-shift estimate is uncertain and does not distinguish a jump from zero.
 
-The result is robust to replacing ARMA(1,1) errors with the more parsimonious AR(1) alternative. Residual diagnostics do not flag remaining short-lag autocorrelation, while the limited forecast check shows both modest one-step predictive value and substantial uncertainty. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association with the event timing, not a causal or market-share claim.
+The result is robust to replacing ARMA(1,1) errors with the more parsimonious AR(1) alternative. Residual diagnostics do not flag remaining short-lag autocorrelation, while the limited forecast check shows both modest one-step predictive value and substantial uncertainty. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
 
 # Data Source
 
