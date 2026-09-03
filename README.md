@@ -1,6 +1,6 @@
 # Structural Break and Time Series Modeling of Weekly Cereal Sales
 
-An intervention analysis of a weekly cereal-sales example using segmented regression with jointly estimated time-series errors.
+An intervention analysis of a weekly cereal-sales example using segmented regression followed by ARMA modeling of the regression residuals.
 
 **[Read the report](./time-series-intervention-analysis.pdf)** | **[View the R Markdown source](./time-series-intervention-analysis.Rmd)**
 
@@ -13,31 +13,31 @@ The data come from the weekly cereal-sales intervention example in Montgomery, J
 ## Approach
 
 1. Validate the dataset and encode a centered intervention at week 88.
-2. Use ordinary least squares to inspect the segmented trend and diagnose serial correlation.
-3. Jointly estimate the regression and correlated errors by maximum likelihood.
-4. Compare AR(1), MA(1), and ARMA(1,1) error specifications using AIC, BIC, and residual diagnostics.
-5. Produce ten-week conditional model projections and evaluate the specifications over ten rolling one-step forecasts.
+2. Estimate the level and trend changes with a segmented ordinary least-squares regression.
+3. Diagnose serial correlation and compare AR(1), MA(1), and ARMA(1,1) models for the regression residuals.
+4. Check whether the fitted ARMA innovations behave approximately as white noise.
+5. Combine the regression projection with the residual forecast and evaluate the two-stage workflow over ten rolling one-step forecasts.
 
-The centered model directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. AR(1) is retained as the primary error specification because it provides adequate residual diagnostics and BIC favors it over ARMA(1,1). An ARMA(1,1) fit checks the error structure, while a continuous slope-change AR(1) model checks the effect of omitting the uncertain immediate level term.
+The centered regression directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. Because its residuals are autocorrelated, the regression coefficients are presented as descriptive estimates rather than accompanied by conventional OLS significance claims. ARMA(1,1) is retained for the residual stage because it has the lowest AIC and both terms contribute, although BIC favors the simpler AR(1).
 
 ## Results
 
-Under the joint AR(1) specification:
+The segmented regression estimates:
 
-- Pre-entry trend: approximately **+1,152 units per week**.
-- Immediate level shift at week 88: approximately **-7,552 units** (95% CI: -18,586 to 3,482; p = 0.180).
-- Change in trend: approximately **-3,294 units per week** (95% CI: -4,367 to -2,222; p < 0.001).
-- Post-entry trend: approximately **-2,143 units per week** (95% CI: -3,208 to -1,077; p < 0.001).
+- Pre-entry trend: approximately **+1,153 units per week**.
+- Immediate level shift at week 88: approximately **-8,118 units**.
+- Change in trend: approximately **-3,257 units per week**.
+- Post-entry trend: approximately **-2,104 units per week**.
 
-A likelihood-ratio comparison with a trend-only AR(1) model supports including the level and slope changes (p < 0.001). The immediate level-shift interval includes zero, so the evidence is concentrated in the change in trend rather than a discrete jump at week 88. A continuous slope-change model has lower BIC (2208.9 versus 2211.9) and estimates a post-entry trend of -2,690 units per week. The full model remains primary because it answers both intervention questions directly and has slightly lower rolling RMSE; both specifications show a trend reversal. The ARMA(1,1) sensitivity fit gives the same substantive conclusion.
+These are descriptive point estimates. The separate residual model does not provide autocorrelation-adjusted confidence intervals or p-values for the regression coefficients.
 
-Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, the full AR(1) model's one-step RMSE is 13,098 units versus 13,490 for the continuous model and 15,107 for a naive forecast. ARMA(1,1) has an RMSE of 13,013, too little evidence to establish a meaningful predictive advantage. The reported 95% intervals are conditional on the fitted regression and error-process parameters; they exclude parameter-estimation and model-selection uncertainty.
+The ARMA(1,1) residual model has fitted AR and MA coefficients of approximately 0.673 and -0.451. Its innovations show no evident remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, two-step ARMA(1,1) has an RMSE of 12,903 units versus 13,004 for two-step AR(1) and 15,107 for a naive forecast. The small difference between the residual models does not establish a meaningful predictive advantage.
 
 ## Interpretation and Limitations
 
 This is an uncontrolled interrupted time series built from a published textbook example. It estimates a change in the brand's weekly sales associated with the stated week-88 event date, but it cannot establish that competitor entry caused the change; market share is not observed.
 
-Only 17 post-entry observations and two annual cycles are available. Annual seasonality cannot be assessed reliably, the exact post-entry rate depends on the deterministic specification, and the ten-week forecasts should be read as conditional model projections rather than validated long-range forecasts.
+Only 17 post-entry observations and two annual cycles are available. Annual seasonality cannot be assessed reliably, and the ten-week forecasts should be read as conditional model projections rather than validated long-range forecasts. Their intervals represent residual-process uncertainty only; they omit regression-coefficient, parameter-estimation, and model-selection uncertainty.
 
 ## Reproduce the Report
 
