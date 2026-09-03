@@ -107,8 +107,6 @@ plot(
   ylab = "Sales"
 )
 abline(v = break_week, col = "firebrick", lty = 2, lwd = 1.5)
-text(break_week - 2, min(cereal$sales), "Competitor entry", srt = 90,
-     pos = 3, col = "firebrick", cex = 0.8)
 ```
 
 Sales rise through most of the series and then decline after week 88. A segmented trend is therefore a natural description of the visible change. The event timing is supplied with the example, so the analysis treats week 88 as known rather than searching the series for a break point.
@@ -180,7 +178,7 @@ The Durbin-Watson result and the lag-one autocorrelation show that independence 
 
 Only two annual cycles are observed. The displayed ACF and PACF cover lags through 40, so annual seasonality at lag 52 cannot be assessed reliably from this sample. No seasonal terms are included.
 
-# Joint Regression with ARMA Errors
+# Joint Regression with Correlated Errors
 
 The regression coefficients and error process are next estimated jointly by maximum likelihood. AR(1), MA(1), and ARMA(1,1) errors are compared because the OLS residual ACF and PACF concentrate most of their structure at short lags.
 
@@ -225,22 +223,23 @@ display_comparison <- transform(
 knitr::kable(
   display_comparison,
   col.names = c("Error model", "AIC", "BIC", "Ljung-Box p-value (lag 10)"),
-  align = c("l", "r", "r", "r")
+  align = c("l", "r", "r", "r"),
+  row.names = FALSE
 )
 ```
 
-ARMA(1,1) has the smallest AIC, but it improves on AR(1) by less than one AIC point; BIC instead favors the simpler AR(1). The data therefore do not identify a uniquely best low-order error model. ARMA(1,1) is retained as the primary specification because it has the lowest AIC and both error-process coefficients are distinguishable from zero. The AR(1) fit is retained as a sensitivity check.
+ARMA(1,1) has the smallest AIC, but it improves on AR(1) by less than one AIC point; BIC instead favors the simpler AR(1). Both specifications leave no evident short-lag autocorrelation. Because the additional moving-average term does not materially improve fit or diagnostics, AR(1) is retained as the primary specification and ARMA(1,1) as a sensitivity check.
 
 For the selected specification,
 
 $$
-e_t = \phi e_{t-1} + \varepsilon_t + \theta \varepsilon_{t-1},
+e_t = \phi e_{t-1} + \varepsilon_t,
 \qquad \varepsilon_t \sim \mathrm{WN}(0, \sigma^2).
 $$
 
 ```{r selected-model-results}
-selected_fit <- candidate_fits[["ARMA(1,1)"]]
-ar1_fit <- candidate_fits[["AR(1)"]]
+selected_fit <- candidate_fits[["AR(1)"]]
+arma_fit <- candidate_fits[["ARMA(1,1)"]]
 
 selected_effects <- rbind(
   "Pre-entry weekly trend" = linear_combination(selected_fit, c(time = 1)),
@@ -268,7 +267,7 @@ knitr::kable(
 
 trend_only_fit <- arima(
   cereal_ts,
-  order = c(1, 0, 1),
+  order = c(1, 0, 0),
   xreg = cbind(time = cereal$week),
   include.mean = TRUE,
   method = "ML"
@@ -282,22 +281,21 @@ selected_p_values <- 2 * pnorm(
   lower.tail = FALSE
 )
 
-ar1_effects <- rbind(
-  "Immediate level shift at week 88" = linear_combination(ar1_fit, c(post_entry = 1)),
+arma_effects <- rbind(
+  "Immediate level shift at week 88" = linear_combination(arma_fit, c(post_entry = 1)),
   "Post-entry weekly trend" = linear_combination(
-    ar1_fit,
+    arma_fit,
     c(time = 1, weeks_after_entry = 1)
   )
 )
 
 ar_root_modulus <- 1 / abs(coef(selected_fit)["ar1"])
-ma_root_modulus <- 1 / abs(coef(selected_fit)["ma1"])
-stopifnot(ar_root_modulus > 1, ma_root_modulus > 1)
+stopifnot(ar_root_modulus > 1)
 ```
 
-The fitted pre-entry trend is approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week. The estimated post-entry trend is approximately `r format_estimate(selected_effects["Post-entry weekly trend", "Estimate"])` units per week, a change of `r format_estimate(selected_effects["Change in weekly trend", "Estimate"])` units per week. A likelihood-ratio comparison against an ARMA(1,1) trend-only model supports adding the level and slope changes (p `r format_p_value(break_lr_p)`). The fitted error coefficients are `r sprintf("%.3f", coef(selected_fit)["ar1"])` for AR(1) (p `r format_p_value(selected_p_values["ar1"])`) and `r sprintf("%.3f", coef(selected_fit)["ma1"])` for MA(1) (p = `r format_p_value(selected_p_values["ma1"])`).
+The fitted pre-entry trend is approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week. The estimated post-entry trend is approximately `r format_estimate(selected_effects["Post-entry weekly trend", "Estimate"])` units per week, a change of `r format_estimate(selected_effects["Change in weekly trend", "Estimate"])` units per week. A likelihood-ratio comparison against an AR(1) trend-only model supports adding the level and slope changes (p `r format_p_value(break_lr_p)`). The fitted AR(1) error coefficient is `r sprintf("%.3f", coef(selected_fit)["ar1"])` (p = `r format_p_value(selected_p_values["ar1"])`).
 
-The immediate level-shift interval includes zero (p = `r format_p_value(selected_effects["Immediate level shift at week 88", "p_value"])`), so the data do not show a statistically clear jump in week 88. The evidence is concentrated in the change in trend. The AR(1) sensitivity fit produces the same substantive conclusion: an estimated post-entry trend of `r format_estimate(ar1_effects["Post-entry weekly trend", "Estimate"])` units per week and no statistically clear immediate shift (p = `r format_p_value(ar1_effects["Immediate level shift at week 88", "p_value"])`).
+The immediate level-shift interval includes zero (p = `r format_p_value(selected_effects["Immediate level shift at week 88", "p_value"])`), so the data do not show a statistically clear jump in week 88. The evidence is concentrated in the change in trend. The ARMA(1,1) sensitivity fit produces the same substantive conclusion: an estimated post-entry trend of `r format_estimate(arma_effects["Post-entry weekly trend", "Estimate"])` units per week and no statistically clear immediate shift (p = `r format_p_value(arma_effects["Immediate level shift at week 88", "p_value"])`).
 
 ```{r selected-model-diagnostics, fig.height=4.6}
 selected_residuals <- residuals(selected_fit)
@@ -308,7 +306,7 @@ ljung_box_p_values <- vapply(diagnostic_lags, function(model_lag) {
     selected_residuals,
     lag = model_lag,
     type = "Ljung-Box",
-    fitdf = 2
+    fitdf = 1
   )$p.value
 }, numeric(1))
 
@@ -326,11 +324,11 @@ abline(h = 0.05, col = "firebrick", lty = 2)
 par(old_par)
 ```
 
-The selected-model residual ACF has no prominent remaining structure, and the lag-10 Ljung-Box test does not reject residual independence (p = `r format_p_value(model_comparison$Ljung_Box_p[model_comparison$Model == "ARMA(1,1)"])`). These diagnostics are consistent with, but do not prove, a white-noise error sequence. The fitted AR and MA roots lie outside the unit circle, satisfying the stationarity and invertibility conditions.
+The selected-model residual ACF has no prominent remaining structure, and the lag-10 Ljung-Box test does not reject residual independence (p = `r format_p_value(model_comparison$Ljung_Box_p[model_comparison$Model == "AR(1)"])`). These diagnostics are consistent with, but do not prove, a white-noise error sequence. The fitted AR root lies outside the unit circle, satisfying the stationarity condition.
 
 # Forecasting
 
-The fitted model is projected ten weeks beyond the observed series. These are conditional, model-based forecasts: they assume the segmented post-entry trend and ARMA error structure continue unchanged.
+The fitted model is projected ten weeks beyond the observed series. These are conditional, model-based forecasts: they assume the segmented post-entry trend and AR(1) error structure continue unchanged.
 
 ```{r forecasts}
 future_weeks <- (nrow(cereal) + 1L):(nrow(cereal) + forecast_horizon)
@@ -392,15 +390,16 @@ legend(
 )
 ```
 
-As a limited forecast check, the same ARMA(1,1) specification was refit at ten rolling origins to predict weeks 95 through 104 one step ahead.
+As a limited forecast check, the AR(1) and ARMA(1,1) specifications were refit at ten rolling origins to predict weeks 95 through 104 one step ahead.
 
 ```{r rolling-evaluation}
 evaluation_weeks <- 95:104
-rolling_results <- do.call(rbind, lapply(evaluation_weeks, function(target_week) {
+
+fit_one_step <- function(target_week, model_order) {
   training_rows <- cereal$week < target_week
   training_fit <- arima(
     ts(cereal$sales[training_rows], start = 1, frequency = season_period),
-    order = c(1, 0, 1),
+    order = model_order,
     xreg = make_xreg(cereal$week[training_rows]),
     include.mean = TRUE,
     method = "ML"
@@ -411,44 +410,68 @@ rolling_results <- do.call(rbind, lapply(evaluation_weeks, function(target_week)
     newxreg = make_xreg(target_week)
   )
 
+  c(
+    Prediction = as.numeric(one_step$pred),
+    Lower95 = as.numeric(one_step$pred - qnorm(0.975) * one_step$se),
+    Upper95 = as.numeric(one_step$pred + qnorm(0.975) * one_step$se)
+  )
+}
+
+rolling_results <- do.call(rbind, lapply(evaluation_weeks, function(target_week) {
+  ar1_forecast <- fit_one_step(target_week, c(1, 0, 0))
+  arma_forecast <- fit_one_step(target_week, c(1, 0, 1))
+
   data.frame(
     Week = target_week,
     Actual = cereal$sales[cereal$week == target_week],
-    Model = as.numeric(one_step$pred),
-    Lower95 = as.numeric(one_step$pred - qnorm(0.975) * one_step$se),
-    Upper95 = as.numeric(one_step$pred + qnorm(0.975) * one_step$se),
+    AR1 = ar1_forecast["Prediction"],
+    AR1_Lower95 = ar1_forecast["Lower95"],
+    AR1_Upper95 = ar1_forecast["Upper95"],
+    ARMA = arma_forecast["Prediction"],
+    ARMA_Lower95 = arma_forecast["Lower95"],
+    ARMA_Upper95 = arma_forecast["Upper95"],
     Naive = cereal$sales[cereal$week == target_week - 1L]
   )
 }))
 
-model_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$Model)^2))
+ar1_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$AR1)^2))
+arma_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$ARMA)^2))
 naive_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$Naive)^2))
-interval_coverage <- mean(
-  rolling_results$Actual >= rolling_results$Lower95 &
-    rolling_results$Actual <= rolling_results$Upper95
+ar1_interval_hits <- sum(
+  rolling_results$Actual >= rolling_results$AR1_Lower95 &
+    rolling_results$Actual <= rolling_results$AR1_Upper95
+)
+arma_interval_hits <- sum(
+  rolling_results$Actual >= rolling_results$ARMA_Lower95 &
+    rolling_results$Actual <= rolling_results$ARMA_Upper95
 )
 
 evaluation_table <- data.frame(
-  Measure = c("ARMA regression RMSE", "Naive RMSE", "95% interval coverage"),
+  Measure = c(
+    "AR(1) regression RMSE",
+    "ARMA(1,1) regression RMSE",
+    "Naive RMSE",
+    "AR(1) 95% interval coverage",
+    "ARMA(1,1) 95% interval coverage"
+  ),
   Result = c(
-    format_estimate(model_rmse),
+    format_estimate(ar1_rmse),
+    format_estimate(arma_rmse),
     format_estimate(naive_rmse),
-    sprintf("%d of %d forecasts", sum(
-      rolling_results$Actual >= rolling_results$Lower95 &
-        rolling_results$Actual <= rolling_results$Upper95
-    ), nrow(rolling_results))
+    sprintf("%d of %d forecasts", ar1_interval_hits, nrow(rolling_results)),
+    sprintf("%d of %d forecasts", arma_interval_hits, nrow(rolling_results))
   )
 )
 knitr::kable(evaluation_table, align = c("l", "r"))
 ```
 
-The model's one-step RMSE is lower than the naive benchmark in this short window, but only `r nrow(rolling_results)` forecasts are evaluated and only `r break_week - 1` pre-entry plus `r min(evaluation_weeks) - break_week` post-entry observations are available at the first origin. Coverage is `r round(100 * interval_coverage)`%, below the nominal 95%. The ten-week projection should therefore be read as an illustration of the fitted model rather than a validated long-range forecast.
+Both regression models have lower one-step RMSE than the naive benchmark in this short window. The ARMA(1,1) RMSE is only `r format_estimate(ar1_rmse - arma_rmse)` units (`r sprintf("%.1f", 100 * (ar1_rmse - arma_rmse) / ar1_rmse)`%) lower than the AR(1) RMSE, while AR(1) covers `r ar1_interval_hits` of 10 nominal 95% intervals versus `r arma_interval_hits` for ARMA(1,1). Only `r nrow(rolling_results)` forecasts are evaluated, with `r break_week - 1` pre-entry plus `r min(evaluation_weeks) - break_week` post-entry observations available at the first origin, so the comparison does not establish a meaningful predictive advantage for either error model. The ten-week projection should therefore be read as an illustration of the selected AR(1) model rather than a validated long-range forecast.
 
 # Conclusion
 
-Jointly estimating the segmented regression and ARMA(1,1) errors yields a clear change in weekly trend after week 88. Sales rise by approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week before the stated entry date and decline by approximately `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week afterward. The immediate level-shift estimate is uncertain and does not distinguish a jump from zero.
+Jointly estimating the segmented regression and AR(1) errors yields a clear change in weekly trend after week 88. Sales rise by approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week before the stated entry date and decline by approximately `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week afterward. The immediate level-shift estimate is uncertain and does not distinguish a jump from zero.
 
-The result is robust to replacing ARMA(1,1) errors with the more parsimonious AR(1) alternative. Residual diagnostics do not flag remaining short-lag autocorrelation, while the limited forecast check shows both modest one-step predictive value and substantial uncertainty. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
+The ARMA(1,1) sensitivity fit produces a similar trend reversal, so the substantive finding is not tied to the selected low-order error structure. Residual diagnostics do not flag remaining short-lag autocorrelation, while the limited forecast check shows modest one-step predictive value and does not distinguish the two error models decisively. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
 
 # Data Source
 
