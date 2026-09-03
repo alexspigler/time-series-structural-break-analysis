@@ -16,9 +16,9 @@ The data come from the weekly cereal-sales intervention example in Montgomery, J
 2. Use ordinary least squares to inspect the segmented trend and diagnose serial correlation.
 3. Jointly estimate the regression and correlated errors by maximum likelihood.
 4. Compare AR(1), MA(1), and ARMA(1,1) error specifications using AIC, BIC, and residual diagnostics.
-5. Produce ten-week model projections and evaluate the specification over ten rolling one-step forecasts.
+5. Produce ten-week conditional model projections and evaluate the specifications over ten rolling one-step forecasts.
 
-The centered model directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. AR(1) is retained as the primary error specification because it provides adequate residual diagnostics and BIC favors it over ARMA(1,1). The ARMA(1,1) fit is reported as a sensitivity analysis.
+The centered model directly estimates the pre-entry trend, immediate level shift, change in trend, and post-entry trend. AR(1) is retained as the primary error specification because it provides adequate residual diagnostics and BIC favors it over ARMA(1,1). An ARMA(1,1) fit checks the error structure, while a continuous slope-change AR(1) model checks the effect of omitting the uncertain immediate level term.
 
 ## Results
 
@@ -29,15 +29,15 @@ Under the joint AR(1) specification:
 - Change in trend: approximately **-3,294 units per week** (95% CI: -4,367 to -2,222; p < 0.001).
 - Post-entry trend: approximately **-2,143 units per week** (95% CI: -3,208 to -1,077; p < 0.001).
 
-A likelihood-ratio comparison with a trend-only AR(1) model supports including the level and slope changes (p < 0.001). The immediate level-shift interval includes zero, so the evidence is concentrated in the change in trend rather than a discrete jump at week 88. The ARMA(1,1) sensitivity fit gives the same substantive conclusion.
+A likelihood-ratio comparison with a trend-only AR(1) model supports including the level and slope changes (p < 0.001). The immediate level-shift interval includes zero, so the evidence is concentrated in the change in trend rather than a discrete jump at week 88. A continuous slope-change model has lower BIC (2208.9 versus 2211.9) and estimates a post-entry trend of -2,690 units per week. The full model remains primary because it answers both intervention questions directly and has slightly lower rolling RMSE; both specifications show a trend reversal. The ARMA(1,1) sensitivity fit gives the same substantive conclusion.
 
-Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, the AR(1) model's one-step RMSE is 13,098 units versus 15,107 for a naive forecast, with 9 of 10 observations inside the nominal 95% intervals. ARMA(1,1) has an RMSE of 13,013 with 8 of 10 observations inside its intervals, too little evidence to establish a meaningful predictive advantage.
+Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity. In a limited rolling check for weeks 95 through 104, the full AR(1) model's one-step RMSE is 13,098 units versus 13,490 for the continuous model and 15,107 for a naive forecast. ARMA(1,1) has an RMSE of 13,013, too little evidence to establish a meaningful predictive advantage. The reported 95% intervals are conditional on the fitted regression and error-process parameters; they exclude parameter-estimation and model-selection uncertainty.
 
 ## Interpretation and Limitations
 
 This is an uncontrolled interrupted time series built from a published textbook example. It estimates a change in the brand's weekly sales associated with the stated week-88 event date, but it cannot establish that competitor entry caused the change; market share is not observed.
 
-Only 17 post-entry observations and two annual cycles are available. Annual seasonality cannot be assessed reliably, and the ten-week forecasts should be read as conditional model projections rather than validated long-range forecasts.
+Only 17 post-entry observations and two annual cycles are available. Annual seasonality cannot be assessed reliably, the exact post-entry rate depends on the deterministic specification, and the ten-week forecasts should be read as conditional model projections rather than validated long-range forecasts.
 
 ## Reproduce the Report
 

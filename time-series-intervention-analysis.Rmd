@@ -58,6 +58,13 @@ make_xreg <- function(week) {
   )
 }
 
+make_continuous_xreg <- function(week) {
+  cbind(
+    time = week,
+    weeks_after_entry = pmax(0, week - break_week)
+  )
+}
+
 linear_combination <- function(fit, terms) {
   estimates <- coef(fit)
   weights <- setNames(numeric(length(estimates)), names(estimates))
@@ -291,6 +298,22 @@ trend_only_fit <- arima(
 break_lr_statistic <- 2 * (as.numeric(logLik(selected_fit)) - as.numeric(logLik(trend_only_fit)))
 break_lr_p <- pchisq(break_lr_statistic, df = 2, lower.tail = FALSE)
 
+continuous_break_fit <- arima(
+  cereal_ts,
+  order = c(1, 0, 0),
+  xreg = make_continuous_xreg(cereal$week),
+  include.mean = TRUE,
+  method = "ML"
+)
+continuous_post_entry_trend <- linear_combination(
+  continuous_break_fit,
+  c(time = 1, weeks_after_entry = 1)
+)
+level_term_lr_statistic <- 2 * (
+  as.numeric(logLik(selected_fit)) - as.numeric(logLik(continuous_break_fit))
+)
+level_term_lr_p <- pchisq(level_term_lr_statistic, df = 1, lower.tail = FALSE)
+
 selected_standard_errors <- sqrt(diag(selected_fit$var.coef))
 selected_p_values <- 2 * pnorm(
   abs(coef(selected_fit) / selected_standard_errors),
@@ -326,7 +349,9 @@ The fitted pre-entry trend is approximately `r format_estimate(selected_effects[
 
 The immediate level-shift interval includes zero (p = `r format_p_value(selected_effects["Immediate level shift at week 88", "p_value"])`), so the data do not show a statistically clear jump in week 88. The evidence is concentrated in the change in trend. The ARMA(1,1) sensitivity fit produces the same substantive conclusion: an estimated post-entry trend of `r format_estimate(arma_effects["Post-entry weekly trend", "Estimate"])` units per week and no statistically clear immediate shift (p = `r format_p_value(arma_effects["Immediate level shift at week 88", "p_value"])`).
 
-The following checks are applied to the innovations from the selected AR(1) model rather than to the initial OLS residuals.
+Because the immediate shift is uncertain, a continuous slope-change AR(1) model was also fit without the level term. Its BIC is `r sprintf("%.1f", BIC(continuous_break_fit))`, versus `r sprintf("%.1f", BIC(selected_fit))` for the full model, and adding the level term is not supported (p = `r format_p_value(level_term_lr_p)`). Its post-entry trend is `r format_estimate(continuous_post_entry_trend["Estimate"])` units per week. The direction is unchanged, but the exact rate is specification-sensitive. The full model remains primary because it directly answers both intervention questions; the rolling evaluation below compares the structures.
+
+The selected-model checks use the AR(1) innovations, not the initial OLS residuals.
 
 ```{r selected-model-tests}
 selected_residuals <- residuals(selected_fit)
@@ -397,7 +422,7 @@ The lag-10 Ljung-Box test does not reject the null of no residual autocorrelatio
 
 # Forecasting
 
-The fitted model is projected ten weeks beyond the observed series. These are conditional, model-based forecasts: they assume the segmented post-entry trend and AR(1) error structure continue unchanged.
+These conditional projections assume the segmented post-entry trend and AR(1) error structure continue unchanged. Their intervals treat fitted parameters as fixed and exclude parameter-estimation and model-selection uncertainty.
 
 ```{r forecasts}
 future_weeks <- (nrow(cereal) + 1L):(nrow(cereal) + forecast_horizon)
@@ -423,7 +448,7 @@ display_forecasts <- transform(
 )
 knitr::kable(
   display_forecasts,
-  col.names = c("Week", "Forecast", "95% lower", "95% upper"),
+  col.names = c("Week", "Forecast", "Cond. 95% lower", "Cond. 95% upper"),
   align = c("r", "r", "r", "r")
 )
 ```
@@ -436,7 +461,7 @@ plot(
   lwd = 1.2,
   xlim = c(1, max(future_weeks)),
   ylim = range(c(cereal$sales, forecast_table$Lower95, forecast_table$Upper95)),
-  main = "Observed Sales and 10-Week Model Projection",
+  main = "Observed Sales and 10-Week Conditional Projection",
   xlab = "Week",
   ylab = "Sales"
 )
@@ -450,7 +475,7 @@ lines(future_weeks, forecast_table$Forecast, col = "steelblue4", lwd = 2)
 abline(v = break_week, col = "firebrick", lty = 2)
 legend(
   "topleft",
-  legend = c("Observed", "Forecast", "95% model interval", "Week 88"),
+  legend = c("Observed", "Forecast", "Conditional 95% interval", "Week 88"),
   col = c("black", "steelblue4", adjustcolor("steelblue", alpha.f = 0.3), "firebrick"),
   lty = c(1, 1, 1, 2),
   lwd = c(1.2, 2, 6, 1),
@@ -464,19 +489,19 @@ As a limited forecast check, the AR(1) and ARMA(1,1) specifications were refit a
 ```{r rolling-evaluation}
 evaluation_weeks <- 95:104
 
-fit_one_step <- function(target_week, model_order) {
+fit_one_step <- function(target_week, model_order, xreg_builder = make_xreg) {
   training_rows <- cereal$week < target_week
   training_fit <- arima(
     ts(cereal$sales[training_rows], start = 1, frequency = season_period),
     order = model_order,
-    xreg = make_xreg(cereal$week[training_rows]),
+    xreg = xreg_builder(cereal$week[training_rows]),
     include.mean = TRUE,
     method = "ML"
   )
   one_step <- predict(
     training_fit,
     n.ahead = 1,
-    newxreg = make_xreg(target_week)
+    newxreg = xreg_builder(target_week)
   )
 
   c(
@@ -489,6 +514,11 @@ fit_one_step <- function(target_week, model_order) {
 rolling_results <- do.call(rbind, lapply(evaluation_weeks, function(target_week) {
   ar1_forecast <- fit_one_step(target_week, c(1, 0, 0))
   arma_forecast <- fit_one_step(target_week, c(1, 0, 1))
+  continuous_ar1_forecast <- fit_one_step(
+    target_week,
+    c(1, 0, 0),
+    make_continuous_xreg
+  )
 
   data.frame(
     Week = target_week,
@@ -499,12 +529,16 @@ rolling_results <- do.call(rbind, lapply(evaluation_weeks, function(target_week)
     ARMA = arma_forecast["Prediction"],
     ARMA_Lower95 = arma_forecast["Lower95"],
     ARMA_Upper95 = arma_forecast["Upper95"],
+    Continuous_AR1 = continuous_ar1_forecast["Prediction"],
     Naive = cereal$sales[cereal$week == target_week - 1L]
   )
 }))
 
 ar1_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$AR1)^2))
 arma_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$ARMA)^2))
+continuous_ar1_rmse <- sqrt(mean(
+  (rolling_results$Actual - rolling_results$Continuous_AR1)^2
+))
 naive_rmse <- sqrt(mean((rolling_results$Actual - rolling_results$Naive)^2))
 ar1_interval_hits <- sum(
   rolling_results$Actual >= rolling_results$AR1_Lower95 &
@@ -517,14 +551,16 @@ arma_interval_hits <- sum(
 
 evaluation_table <- data.frame(
   Measure = c(
-    "AR(1) regression RMSE",
+    "Full-break AR(1) RMSE",
+    "Continuous-break AR(1) RMSE",
     "ARMA(1,1) regression RMSE",
     "Naive RMSE",
-    "AR(1) 95% interval coverage",
-    "ARMA(1,1) 95% interval coverage"
+    "AR(1) conditional 95% interval coverage",
+    "ARMA(1,1) conditional 95% interval coverage"
   ),
   Result = c(
     format_estimate(ar1_rmse),
+    format_estimate(continuous_ar1_rmse),
     format_estimate(arma_rmse),
     format_estimate(naive_rmse),
     sprintf("%d of %d forecasts", ar1_interval_hits, nrow(rolling_results)),
@@ -534,13 +570,13 @@ evaluation_table <- data.frame(
 knitr::kable(evaluation_table, align = c("l", "r"))
 ```
 
-Both regression models have lower one-step RMSE than the naive benchmark in this short window. The ARMA(1,1) RMSE is only `r format_estimate(ar1_rmse - arma_rmse)` units (`r sprintf("%.1f", 100 * (ar1_rmse - arma_rmse) / ar1_rmse)`%) lower than the AR(1) RMSE, while AR(1) covers `r ar1_interval_hits` of 10 nominal 95% intervals versus `r arma_interval_hits` for ARMA(1,1). Only `r nrow(rolling_results)` forecasts are evaluated, with `r break_week - 1` pre-entry plus `r min(evaluation_weeks) - break_week` post-entry observations available at the first origin, so the comparison does not establish a meaningful predictive advantage for either error model. The ten-week projection should therefore be read as an illustration of the selected AR(1) model rather than a validated long-range forecast.
+All three regression specifications outperform the naive benchmark in this short window. The continuous model's RMSE is `r format_estimate(continuous_ar1_rmse - ar1_rmse)` units above the full AR(1), while ARMA(1,1) is only `r format_estimate(ar1_rmse - arma_rmse)` units (`r sprintf("%.1f", 100 * (ar1_rmse - arma_rmse) / ar1_rmse)`%) below it. The full AR(1) covers `r ar1_interval_hits` of 10 conditional intervals versus `r arma_interval_hits` for ARMA(1,1). Because the intervals fix estimated parameters and only `r nrow(rolling_results)` forecasts are evaluated---with `r break_week - 1` pre-entry and `r min(evaluation_weeks) - break_week` post-entry observations at the first origin---the results are descriptive and do not distinguish the specifications decisively. The projection is therefore illustrative, not a validated long-range forecast.
 
 # Conclusion
 
-Jointly estimating the segmented regression and AR(1) errors yields a clear change in weekly trend after week 88. Sales rise by approximately `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week before the stated entry date and decline by approximately `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week afterward. The immediate level-shift estimate is uncertain and does not distinguish a jump from zero.
+The joint segmented-regression and AR(1) fit estimates a pre-entry rise of `r format_estimate(selected_effects["Pre-entry weekly trend", "Estimate"])` units per week and a post-entry decline of `r format_estimate(abs(selected_effects["Post-entry weekly trend", "Estimate"]))` units per week. The immediate level shift is uncertain.
 
-The ARMA(1,1) sensitivity fit produces a similar trend reversal, so the substantive finding is not tied to the selected low-order error structure. Residual diagnostics do not flag remaining short-lag autocorrelation, strong nonnormality, or conditional heteroskedasticity, while the limited forecast check shows modest one-step predictive value and does not distinguish the two error models decisively. Because this is an uncontrolled textbook example with a short post-entry period, the analysis supports an association between the event timing and the brand's sales trend, not a causal claim; market share is not observed.
+ARMA(1,1) and continuous slope-change sensitivities also yield negative post-entry trends, but the continuous estimate of `r format_estimate(continuous_post_entry_trend["Estimate"])` versus `r format_estimate(selected_effects["Post-entry weekly trend", "Estimate"])` units per week in the full model shows that the exact rate is specification-sensitive. Diagnostics do not flag major residual problems, and the limited rolling check does not decisively favor a specification. This uncontrolled example with a short post-entry period supports association, not causation; market share is not observed.
 
 # Data Source
 
