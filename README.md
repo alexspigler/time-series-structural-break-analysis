@@ -49,7 +49,14 @@ The analysis was verified with R 4.6.0 and these package versions:
 - `rmarkdown` 2.31
 - `tseries` 0.10-61
 
-Install the required packages:
+The complete dependency set is recorded in `renv.lock`. To restore it:
+
+```r
+install.packages("renv")
+renv::restore()
+```
+
+To install only the direct dependencies:
 
 ```r
 install.packages(c("car", "knitr", "lmtest", "rmarkdown", "tseries"))
@@ -61,7 +68,7 @@ PDF rendering also requires Pandoc and a LaTeX distribution such as TinyTeX or M
 Rscript render-report.R
 ```
 
-The report checks the expected columns, row count, week sequence, finite values, and intervention week before fitting any models.
+The report checks the expected columns, row count, week sequence, finite values, and intervention week before fitting any models. `verify-project.R` independently reruns the analysis and checks the reported regression effects, model comparison, diagnostics, rolling evaluation, README claims, and extracted PDF text.
 
 ## Files
 
@@ -69,6 +76,9 @@ The report checks the expected columns, row count, week sequence, finite values,
 - `time-series-intervention-analysis.pdf`: rendered technical report
 - `cereal-sales-data.csv`: published example data used by the analysis
 - `render-report.R`: dependency check and report build command
+- `verify-project.R`: reproducibility and claim checks
+- `renv.lock`: recorded R and package versions
+- `.github/workflows/verify.yml`: automated report rebuild and verification
 
 ## License
 
