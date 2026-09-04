@@ -150,22 +150,30 @@ dw_result <- dwtest(ols_fit, alternative = "greater")
 ncv_result <- ncvTest(ols_fit)
 shapiro_result <- shapiro.test(ols_residuals)
 kpss_result <- suppressWarnings(kpss.test(ols_residuals, null = "Level"))
+kpss_display_p_value <- if (kpss_result$p.value >= 0.1) {
+  ">0.100"
+} else {
+  format_p_value(kpss_result$p.value)
+}
 
 baseline_tests <- data.frame(
   Diagnostic = c(
     "Ramsey RESET",
     "Durbin-Watson (positive autocorrelation)",
     "Nonconstant variance score test",
-    "Shapiro-Wilk"
+    "Shapiro-Wilk",
+    "KPSS level stationarity"
   ),
   p_value = c(
-    reset_result$p.value,
-    dw_result$p.value,
-    ncv_result$p,
-    shapiro_result$p.value
+    format_p_value(c(
+      reset_result$p.value,
+      dw_result$p.value,
+      ncv_result$p,
+      shapiro_result$p.value
+    )),
+    kpss_display_p_value
   )
 )
-baseline_tests$p_value <- format_p_value(baseline_tests$p_value)
 knitr::kable(baseline_tests, col.names = c("Diagnostic", "p-value"), align = c("l", "r"))
 ```
 
@@ -270,19 +278,20 @@ The two fitted stages are
 
 $$
 \begin{aligned}
-\widehat{y}^{\mathrm{reg}}_t ={}& `r format_math_estimate(ols_coefficients["(Intercept)"])`
+\widehat{y}_t ={}& `r format_math_estimate(ols_coefficients["(Intercept)"])`
 `r format_math_term(ols_coefficients["time"], "t")`
 `r format_math_term(ols_coefficients["post_entry"], "I_t")`
 `r format_math_term(ols_coefficients["weeks_after_entry"], "A_t")`, \\
+r_t ={}& y_t - \widehat{y}_t, \\
 r_t ={}& `r sprintf("%.3f", selected_error_coefficients["ar1"])`r_{t-1}
 `r if (selected_error_coefficients["ma1"] < 0) "-" else "+"`
 `r sprintf("%.3f", abs(selected_error_coefficients["ma1"]))`\varepsilon_{t-1}
 + \varepsilon_t,
-\qquad \varepsilon_t \sim \mathrm{WN}(0, \widehat{\sigma}^2).
+\qquad \varepsilon_t \sim \mathrm{WN}(0, \sigma^2).
 \end{aligned}
 $$
 
-Here $r_t$ denotes the residual from the segmented regression. The ARMA(1,1) model captures the serial dependence in those residuals. Diagnostics of the resulting ARMA residuals show no evidence of remaining autocorrelation, strong nonnormality, or conditional heteroskedasticity.
+The first equation gives the fitted regression value at week $t$, and $r_t$ is the corresponding residual. The ARMA(1,1) model captures the serial dependence in those residuals. Diagnostics of the resulting ARMA residuals show no evidence of remaining autocorrelation, strong nonnormality, or conditional heteroskedasticity.
 
 ```{r residual-model-tests}
 arma_residuals <- residuals(selected_error_fit)
