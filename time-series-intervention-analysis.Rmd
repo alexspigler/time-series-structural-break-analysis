@@ -257,14 +257,14 @@ selected_error_p_values <- 2 * pnorm(
 )
 
 error_parameter_table <- data.frame(
-  Parameter = c("AR(1)", "MA(1)"),
+  Coefficient = c("AR(1)", "MA(1)"),
   Estimate = sprintf("%.3f", selected_error_coefficients[c("ar1", "ma1")]),
   Standard_error = sprintf("%.3f", selected_error_standard_errors[c("ar1", "ma1")]),
   p_value = format_p_value(selected_error_p_values[c("ar1", "ma1")])
 )
 knitr::kable(
   error_parameter_table,
-  col.names = c("Residual parameter", "Estimate", "Standard error", "p-value"),
+  col.names = c("Residual coefficient", "Estimate", "Standard error", "p-value"),
   align = c("l", "r", "r", "r"),
   row.names = FALSE
 )
